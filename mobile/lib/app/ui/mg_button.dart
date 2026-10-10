@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../theme/motion.dart';
 import '../theme/tokens.dart';
@@ -65,7 +66,12 @@ class _MgButtonState extends State<MgButton> {
           borderRadius: BorderRadius.circular(Radii.sm),
           child: InkWell(
             borderRadius: BorderRadius.circular(Radii.sm),
-            onTap: enabled ? widget.onPressed : null,
+            onTap: enabled
+                ? () {
+                    HapticFeedback.selectionClick();
+                    widget.onPressed!();
+                  }
+                : null,
             onHighlightChanged: (v) => setState(() => _down = v),
             child: Container(
               constraints: const BoxConstraints(minHeight: 48),

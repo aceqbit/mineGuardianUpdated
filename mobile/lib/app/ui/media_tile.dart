@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../theme/motion.dart';
 import '../theme/tokens.dart';
@@ -32,7 +33,12 @@ class MediaTile extends StatelessWidget {
           child: Material(
             color: c.ink900,
             child: InkWell(
-              onTap: onTap,
+              onTap: onTap == null
+                  ? null
+                  : () {
+                      HapticFeedback.selectionClick();
+                      onTap!();
+                    },
               child: Stack(
                 fit: StackFit.expand,
                 children: [

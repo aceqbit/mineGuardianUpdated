@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import '../../../app/ui/skeleton.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../app/responsive.dart';
@@ -218,7 +219,7 @@ class _BodyState extends State<_Body> {
               child: MgCard(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(r.userName, style: t.titleSmall), Text(r.text, style: t.bodyMedium), if (r.at != null) Text(formatIst(r.at!, pattern: 'dd MMM HH:mm'), style: t.bodySmall?.copyWith(color: c.muted))])),
             ),
         ]);
-        if (s.loading) return const Center(child: CircularProgressIndicator());
+        if (s.loading) return const Padding(padding: EdgeInsets.all(Space.lg), child: SkeletonList(count: 4));
         return SingleChildScrollView(
           padding: const EdgeInsets.all(Space.lg),
           child: ContentWidth(

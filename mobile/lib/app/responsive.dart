@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import 'theme/motion.dart';
 import 'theme/tokens.dart';
 
 enum SizeClass { compact, medium, expanded }
@@ -53,7 +54,7 @@ class AdaptiveGrid extends StatelessWidget {
         childAspectRatio: fixedTileHeight == null ? aspectRatio : math.max(0.1, ((c.maxWidth - spacing * (cols - 1)) / cols) / fixedTileHeight!),
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
-        children: children,
+        children: [for (var i = 0; i < children.length; i++) StaggerIn(index: i, child: children[i])],
       );
     });
   }
