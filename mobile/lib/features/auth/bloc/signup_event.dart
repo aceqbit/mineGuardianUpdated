@@ -53,3 +53,18 @@ class SignupSubmitted extends SignupEvent {
   const SignupSubmitted(this.data);
   final SignupData data;
 }
+
+/// The SMS code typed during sign-up. Never kept in state.
+class SignupOtpSubmitted extends SignupEvent {
+  const SignupOtpSubmitted(this.code);
+  final String code;
+}
+
+class SignupOtpResendRequested extends SignupEvent {
+  const SignupOtpResendRequested();
+}
+
+/// Abandon verification: the just-created account is deleted and the form is shown again.
+class SignupOtpCancelled extends SignupEvent {
+  const SignupOtpCancelled();
+}

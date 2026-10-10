@@ -31,6 +31,7 @@ import '../widgets/date_field.dart';
 import '../widgets/dropdown_field.dart';
 import '../widgets/password_field.dart';
 import '../widgets/phone_field.dart';
+import '../widgets/otp_panels.dart';
 import '../widgets/step_header.dart';
 
 const designations = ['Miner', 'Shot-firer', 'Mining Sirdar', 'Overman', 'Electrician', 'Fitter', 'Surveyor', 'Pump Operator', 'Supervisor', 'Other'];
@@ -355,6 +356,51 @@ class _SignupViewState extends State<_SignupView> {
     );
   }
 
+  Widget _verifyPanel(BuildContext context, SignupState s) {
+    final t = Theme.of(context).textTheme;
+    final c = MgColors.of(context);
+    final bloc = context.read<SignupBloc>();
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(vertical: Space.lg),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: Widths.form),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: Space.lg),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              Text('Verify your phone', style: t.headlineMedium),
+              const SizedBox(height: Space.xs),
+              Text('Your account is created once the number is confirmed', style: t.bodySmall),
+              const SizedBox(height: Space.lg),
+              const OtpStepper(step: 1, labels: ['Your details', 'Verify code']),
+              const SizedBox(height: Space.x2),
+              if (s.errorMessage != null)
+                Container(
+                  margin: const EdgeInsets.only(bottom: Space.lg),
+                  padding: const EdgeInsets.all(Space.md),
+                  decoration: BoxDecoration(color: c.dangerBg, borderRadius: BorderRadius.circular(Radii.sm)),
+                  child: Row(children: [
+                    Icon(Icons.error_outline, color: c.danger, size: 20),
+                    const SizedBox(width: Space.sm),
+                    Expanded(child: Text(s.errorMessage!, style: t.bodyMedium?.copyWith(color: c.danger))),
+                  ]),
+                ),
+              OtpCodeEntry(
+                maskedPhone: s.otpMasked,
+                cooldownUntil: s.otpCooldownUntil,
+                busy: s.status == SignupStatus.submitting,
+                secondaryLabel: 'Cancel sign-up',
+                onVerify: (code) => bloc.add(SignupOtpSubmitted(code)),
+                onResend: () => bloc.add(const SignupOtpResendRequested()),
+                onSecondary: () => bloc.add(const SignupOtpCancelled()),
+              ),
+            ]),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final c = MgColors.of(context);
@@ -371,7 +417,10 @@ class _SignupViewState extends State<_SignupView> {
         final expanded = context.isExpanded;
         final submitting = s.status == SignupStatus.submitting;
         final Widget content;
-        if (s.status == SignupStatus.loadingZones) {
+        final verifyingPhone = s.otpMasked != null && (s.status == SignupStatus.verifying || s.status == SignupStatus.submitting);
+        if (verifyingPhone) {
+          content = _verifyPanel(context, s);
+        } else if (s.status == SignupStatus.loadingZones) {
           content = const Center(child: CircularProgressIndicator());
         } else if (s.status == SignupStatus.zonesFailed) {
           content = EmptyState(icon: Icons.cloud_off, title: 'Could not load zones', message: 'Check your connection and try again', actionLabel: 'Retry', onAction: () => context.read<SignupBloc>().add(const SignupStarted()));

@@ -9,7 +9,7 @@ import '../../../app/responsive.dart';
 import '../../../app/theme/motion.dart';
 import '../../../app/theme/tokens.dart';
 import '../../../app/ui/mg_button.dart';
-import '../../../app/ui/mg_segmented.dart';
+import '../../../config.dart';
 import '../../../contracts/enums.dart';
 import '../../../contracts/routes.dart';
 import '../../../core/api/api_client.dart';
@@ -125,17 +125,6 @@ class _LoginViewState extends State<_LoginView> with SingleTickerProviderStateMi
     context.read<LoginBloc>().add(SubmitPressed(isoCode: _country?.isoCode, national: _phone.text, password: _password.text));
   }
 
-  void _sendOtp() {
-    setState(() => _submitted = true);
-    if (validatePhone(_country?.isoCode, _phone.text).error != null) {
-      _shakeTarget = _country == null ? 'code' : 'phone';
-      (_country == null ? _codeFocus : _phoneFocus).requestFocus();
-      if (!Motion.reduce(context)) _shake.forward(from: 0);
-      return;
-    }
-    context.read<LoginBloc>().add(OtpSendRequested(isoCode: _country?.isoCode, national: _phone.text));
-  }
-
   Widget _shaken(String id, Widget child) => AnimatedBuilder(
         animation: _shake,
         builder: (context, c) {
@@ -180,88 +169,86 @@ class _LoginViewState extends State<_LoginView> with SingleTickerProviderStateMi
     final t = Theme.of(context).textTheme;
     final c = MgColors.of(context);
     final submitting = s.status == LoginStatus.submitting;
-    final linking = s.otp == OtpPhase.linkOffer || s.otp == OtpPhase.linkAwaitingCode;
+    final verifying = s.otp == OtpPhase.awaitingCode;
+    final bloc = context.read<LoginBloc>();
     return FocusTraversalGroup(
       policy: OrderedTraversalPolicy(),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisSize: MainAxisSize.min, children: [
-        Text('Welcome back', style: t.headlineMedium),
+        Text(verifying ? 'Verify it is you' : 'Welcome back', style: t.headlineMedium),
         const SizedBox(height: Space.xs),
-        Text('Log in with your mobile number', style: t.bodySmall),
+        Text(verifying ? 'One more step to protect your account' : 'Log in with your mobile number', style: t.bodySmall),
+        const SizedBox(height: Space.lg),
+        OtpStepper(step: verifying ? 1 : 0),
         const SizedBox(height: Space.x2),
-        if (!linking) ...[
-          RoleSwitcher(role: s.role, onChanged: (r) => context.read<LoginBloc>().add(RoleSelected(r))),
-          const SizedBox(height: Space.lg),
-          MgSegmented<LoginMethod>(
-            segments: const [MgSegment(value: LoginMethod.password, label: 'Password', icon: Icons.lock_outline), MgSegment(value: LoginMethod.otp, label: 'SMS code', icon: Icons.sms_outlined)],
-            value: s.method,
-            onChanged: (m) => context.read<LoginBloc>().add(LoginMethodChanged(m)),
-          ),
+        if (!verifying) ...[
+          RoleSwitcher(role: s.role, onChanged: (r) => bloc.add(RoleSelected(r))),
+          const SizedBox(height: Space.x2),
         ],
-        const SizedBox(height: Space.x2),
         _banner(context, s),
-        if (s.otp == OtpPhase.linkOffer)
-          OtpLinkOffer(state: s, onAccept: () => context.read<LoginBloc>().add(const OtpLinkAccepted()), onSkip: () => context.read<LoginBloc>().add(const OtpLinkSkipped()))
-        else if (s.otp == OtpPhase.linkAwaitingCode)
-          OtpCodeEntry(state: s, title: 'Verify your phone', secondaryLabel: 'Not now', onVerify: (c) => context.read<LoginBloc>().add(OtpCodeSubmitted(c)), onResend: () => context.read<LoginBloc>().add(const OtpResendRequested()), onSecondary: () => context.read<LoginBloc>().add(const OtpLinkSkipped()))
-        else if (s.otp == OtpPhase.awaitingCode)
-          OtpCodeEntry(state: s, secondaryLabel: 'Change number', onVerify: (c) => context.read<LoginBloc>().add(OtpCodeSubmitted(c)), onResend: () => context.read<LoginBloc>().add(const OtpResendRequested()), onSecondary: () => context.read<LoginBloc>().add(const OtpChangeNumber()))
+        if (verifying)
+          OtpCodeEntry(
+            maskedPhone: s.maskedPhone,
+            cooldownUntil: s.cooldownUntil,
+            busy: submitting,
+            secondaryLabel: 'Change number',
+            onVerify: (code) => bloc.add(OtpCodeSubmitted(code)),
+            onResend: () => bloc.add(const OtpResendRequested()),
+            onSecondary: () => bloc.add(const OtpCancelled()),
+          )
         else ...[
-        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          FocusTraversalOrder(
-            order: const NumericFocusOrder(1),
-            child: _shaken(
-              'code',
-              CountryCodePicker(
-                value: _country,
-                focusNode: _codeFocus,
-                hasError: _submitted && _country == null,
-                onChanged: (ct) => setState(() {
-                  _country = ct;
-                  if (_phone.text.length > (ct.isoCode == 'IN' ? 10 : 15)) _phone.text = _phone.text.substring(0, ct.isoCode == 'IN' ? 10 : 15);
-                  _phoneFocus.requestFocus();
-                }),
-              ),
-            ),
-          ),
-          const SizedBox(width: Space.md),
-          Expanded(
-            child: FocusTraversalOrder(
-              order: const NumericFocusOrder(2),
+          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            FocusTraversalOrder(
+              order: const NumericFocusOrder(1),
               child: _shaken(
-                'phone',
-                PhoneField(
-                  controller: _phone,
-                  focusNode: _phoneFocus,
-                  country: _country,
-                  errorText: _phoneError,
-                  showValid: _phoneTouched || _submitted,
-                  onChanged: (_) => setState(() {}),
-                  onSubmitted: (_) => _pwFocus.requestFocus(),
+                'code',
+                CountryCodePicker(
+                  value: _country,
+                  focusNode: _codeFocus,
+                  hasError: _submitted && _country == null,
+                  onChanged: (ct) => setState(() {
+                    _country = ct;
+                    if (_phone.text.length > (ct.isoCode == 'IN' ? 10 : 15)) _phone.text = _phone.text.substring(0, ct.isoCode == 'IN' ? 10 : 15);
+                    _phoneFocus.requestFocus();
+                  }),
                 ),
               ),
             ),
+            const SizedBox(width: Space.md),
+            Expanded(
+              child: FocusTraversalOrder(
+                order: const NumericFocusOrder(2),
+                child: _shaken(
+                  'phone',
+                  PhoneField(
+                    controller: _phone,
+                    focusNode: _phoneFocus,
+                    country: _country,
+                    errorText: _phoneError,
+                    showValid: _phoneTouched || _submitted,
+                    onChanged: (_) => setState(() {}),
+                    onSubmitted: (_) => _pwFocus.requestFocus(),
+                  ),
+                ),
+              ),
+            ),
+          ]),
+          const SizedBox(height: Space.lg),
+          FocusTraversalOrder(
+            order: const NumericFocusOrder(3),
+            child: _shaken('pw', PasswordField(controller: _password, focusNode: _pwFocus, errorText: _pwError, onSubmitted: (_) => _submit(), onChanged: (_) => setState(() {}))),
           ),
-        ]),
-        if (s.method == LoginMethod.otp) ...[
           const SizedBox(height: Space.x2),
-          MgButton(label: 'Send code', icon: Icons.sms, expand: true, loading: submitting, onPressed: _sendOtp),
-          const SizedBox(height: Space.sm),
-          Text('Only works for numbers already verified for SMS login. Log in with your password once to enable it.', style: t.bodySmall),
-        ] else ...[
-        const SizedBox(height: Space.lg),
-        FocusTraversalOrder(
-          order: const NumericFocusOrder(3),
-          child: _shaken('pw', PasswordField(controller: _password, focusNode: _pwFocus, errorText: _pwError, onSubmitted: (_) => _submit(), onChanged: (_) => setState(() {}))),
-        ),
-        const SizedBox(height: Space.x2),
-        FocusTraversalOrder(order: const NumericFocusOrder(4), child: MgButton(label: 'Log in as ${s.role.label}', expand: true, loading: submitting, onPressed: _submit)),
-        ],
-        const SizedBox(height: Space.lg),
-        Wrap(alignment: WrapAlignment.spaceBetween, crossAxisAlignment: WrapCrossAlignment.center, children: [
-          if (s.role != Role.admin)
-            TextButton(onPressed: () => context.go(Routes.signup), child: Text('New to Mine Guardian? Create account', style: t.labelLarge?.copyWith(color: c.amber600))),
-          TextButton(onPressed: () => _forgot(context), child: Text('Forgot password?', style: t.labelLarge?.copyWith(color: c.muted))),
-        ]),
+          FocusTraversalOrder(order: const NumericFocusOrder(4), child: MgButton(label: otpRequired ? 'Continue' : 'Log in as ${s.role.label}', icon: otpRequired ? Icons.sms_outlined : null, expand: true, loading: submitting, onPressed: _submit)),
+          if (otpRequired) ...[
+            const SizedBox(height: Space.sm),
+            Text('We will text a 6-digit code to this number to confirm it is you.', textAlign: TextAlign.center, style: t.bodySmall),
+          ],
+          const SizedBox(height: Space.lg),
+          Wrap(alignment: WrapAlignment.spaceBetween, crossAxisAlignment: WrapCrossAlignment.center, children: [
+            if (s.role != Role.admin)
+              TextButton(onPressed: () => context.go(Routes.signup), child: Text('New to Mine Guardian? Create account', style: t.labelLarge?.copyWith(color: c.amber600))),
+            TextButton(onPressed: () => _forgot(context), child: Text('Forgot password?', style: t.labelLarge?.copyWith(color: c.muted))),
+          ]),
         ],
       ]),
     );

@@ -109,12 +109,25 @@ class SignupRepository {
 
   /// Firebase account first, then the profile POST. Any failure after step 1 deletes the Firebase user.
   Future<SessionUser> register(SignupData d, {void Function(String stage)? onStage}) async {
+    await createAccount(d);
+    onStage?.call('Saving profile…');
+    return completeRegistration(d);
+  }
+
+  /// Step 1 of sign-up: the Firebase identity.
+  Future<void> createAccount(SignupData d) async {
     try {
       await _auth.createAccount(d.e164, d.password);
     } on AuthFailure catch (f) {
       throw SignupFailure(f.message, step: 0, alreadyRegistered: f.code == 'ALREADY_REGISTERED');
     }
-    onStage?.call('Saving profile…');
+  }
+
+  /// Rollback used when the phone is not verified: no orphan Firebase users.
+  Future<void> discardAccount() => _auth.deleteCurrentFirebaseUser();
+
+  /// Step 2 of sign-up: the profile POST. Any failure deletes the Firebase user created in [createAccount].
+  Future<SessionUser> completeRegistration(SignupData d) async {
     try {
       await _api.postJson('/api/auth/signup', body: d.toBody());
       final me = await _api.getJson('/api/auth/me');

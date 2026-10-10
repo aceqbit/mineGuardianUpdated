@@ -1,16 +1,67 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../app/theme/motion.dart';
 import '../../../app/theme/tokens.dart';
 import '../../../app/ui/mg_button.dart';
 import '../../../app/ui/mg_text_field.dart';
-import '../bloc/login_state.dart';
+
+/// "1 Number & password  ->  2 Verify code" progress, so users know a code is part of logging in.
+class OtpStepper extends StatelessWidget {
+  const OtpStepper({super.key, required this.step, this.labels = const ['Number & password', 'Verify code']});
+
+  /// 0 or 1.
+  final int step;
+  final List<String> labels;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = MgColors.of(context);
+    final t = Theme.of(context).textTheme;
+    Widget dot(int i) {
+      final done = i < step, active = i == step;
+      return AnimatedContainer(
+        duration: Motion.of(context, Motion.base),
+        width: 28,
+        height: 28,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(shape: BoxShape.circle, color: done || active ? c.amber500 : c.slate200, border: Border.all(color: active ? c.amber600 : Colors.transparent, width: 2)),
+        child: done ? Icon(Icons.check, size: 16, color: c.ink900) : Text('${i + 1}', style: t.labelMedium?.copyWith(color: active ? c.ink900 : c.slate500)),
+      );
+    }
+
+    return Semantics(
+      label: 'Step ${step + 1} of ${labels.length}: ${labels[step]}',
+      child: Row(children: [
+        dot(0),
+        const SizedBox(width: Space.sm),
+        Flexible(child: Text(labels[0], maxLines: 1, overflow: TextOverflow.ellipsis, style: t.labelMedium?.copyWith(color: step == 0 ? c.text : c.muted))),
+        Expanded(child: Padding(padding: const EdgeInsets.symmetric(horizontal: Space.sm), child: AnimatedContainer(duration: Motion.of(context, Motion.base), height: 2, color: step > 0 ? c.amber500 : c.slate200))),
+        dot(1),
+        const SizedBox(width: Space.sm),
+        Flexible(child: Text(labels[1], maxLines: 1, overflow: TextOverflow.ellipsis, style: t.labelMedium?.copyWith(color: step == 1 ? c.text : c.muted))),
+      ]),
+    );
+  }
+}
 
 /// 6-digit code entry with a resend countdown. The code lives only in this widget's controller (never in bloc state,
 /// never autofilled) and the countdown is driven by an AnimationController.
 class OtpCodeEntry extends StatefulWidget {
-  const OtpCodeEntry({super.key, required this.state, required this.onVerify, required this.onResend, required this.onSecondary, required this.secondaryLabel, this.title = 'Enter the 6-digit code'});
-  final LoginState state;
+  const OtpCodeEntry({
+    super.key,
+    required this.maskedPhone,
+    required this.cooldownUntil,
+    required this.busy,
+    required this.onVerify,
+    required this.onResend,
+    required this.onSecondary,
+    required this.secondaryLabel,
+    this.title = 'Enter the 6-digit code',
+  });
+  final String? maskedPhone;
+  final DateTime? cooldownUntil;
+  final bool busy;
   final ValueChanged<String> onVerify;
   final VoidCallback onResend;
   final VoidCallback onSecondary;
@@ -36,12 +87,14 @@ class _OtpCodeEntryState extends State<OtpCodeEntry> with SingleTickerProviderSt
   @override
   void didUpdateWidget(OtpCodeEntry old) {
     super.didUpdateWidget(old);
-    if (old.state.cooldownUntil != widget.state.cooldownUntil) _syncCooldown();
-    if (old.state.otp != widget.state.otp) _code.clear();
+    if (old.cooldownUntil != widget.cooldownUntil) {
+      _syncCooldown();
+      _code.clear(); // a fresh code was sent
+    }
   }
 
   void _syncCooldown() {
-    final until = widget.state.cooldownUntil;
+    final until = widget.cooldownUntil;
     _until = until;
     final left = until == null ? Duration.zero : until.difference(DateTime.now());
     if (left <= Duration.zero) {
@@ -71,12 +124,10 @@ class _OtpCodeEntryState extends State<OtpCodeEntry> with SingleTickerProviderSt
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
     final c = MgColors.of(context);
-    final s = widget.state;
-    final busy = s.status == LoginStatus.submitting;
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisSize: MainAxisSize.min, children: [
       Text(widget.title, style: t.titleMedium),
       const SizedBox(height: Space.xs),
-      Text('We sent a code by SMS to ${s.maskedPhone ?? 'your phone'}. It works once and expires in a few minutes.', style: t.bodySmall),
+      Text('We sent a code by SMS to ${widget.maskedPhone ?? 'your phone'}. It works once and expires in a few minutes.', style: t.bodySmall),
       const SizedBox(height: Space.lg),
       MgTextField(
         controller: _code,
@@ -90,7 +141,7 @@ class _OtpCodeEntryState extends State<OtpCodeEntry> with SingleTickerProviderSt
         onSubmitted: (v) => widget.onVerify(v),
       ),
       const SizedBox(height: Space.lg),
-      MgButton(label: 'Verify code', expand: true, loading: busy, onPressed: _code.text.length == 6 ? () => widget.onVerify(_code.text) : null),
+      MgButton(label: 'Verify and continue', expand: true, loading: widget.busy, onPressed: _code.text.length == 6 ? () => widget.onVerify(_code.text) : null),
       const SizedBox(height: Space.sm),
       Wrap(alignment: WrapAlignment.spaceBetween, crossAxisAlignment: WrapCrossAlignment.center, children: [
         AnimatedBuilder(
@@ -98,49 +149,13 @@ class _OtpCodeEntryState extends State<OtpCodeEntry> with SingleTickerProviderSt
           builder: (context, _) {
             final secs = _secondsLeft;
             return TextButton(
-              onPressed: secs > 0 || busy ? null : widget.onResend,
+              onPressed: secs > 0 || widget.busy ? null : widget.onResend,
               child: Text(secs > 0 ? 'Resend code in ${secs}s' : 'Resend code', style: t.labelLarge?.copyWith(color: secs > 0 ? c.muted : c.amber600)),
             );
           },
         ),
-        TextButton(onPressed: busy ? null : widget.onSecondary, child: Text(widget.secondaryLabel, style: t.labelLarge?.copyWith(color: c.muted))),
+        TextButton(onPressed: widget.busy ? null : widget.onSecondary, child: Text(widget.secondaryLabel, style: t.labelLarge?.copyWith(color: c.muted))),
       ]),
-    ]);
-  }
-}
-
-/// Shown after a successful password login when the phone is not yet linked for OTP.
-class OtpLinkOffer extends StatelessWidget {
-  const OtpLinkOffer({super.key, required this.state, required this.onAccept, required this.onSkip});
-  final LoginState state;
-  final VoidCallback onAccept;
-  final VoidCallback onSkip;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = Theme.of(context).textTheme;
-    final c = MgColors.of(context);
-    final busy = state.status == LoginStatus.submitting;
-    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisSize: MainAxisSize.min, children: [
-      Container(
-        padding: const EdgeInsets.all(Space.lg),
-        decoration: BoxDecoration(color: c.infoBg, borderRadius: BorderRadius.circular(Radii.card)),
-        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Icon(Icons.sms_outlined, color: c.info),
-          const SizedBox(width: Space.md),
-          Expanded(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('Enable OTP login?', style: t.titleMedium?.copyWith(color: c.info)),
-              const SizedBox(height: Space.xs),
-              Text('Verify ${state.maskedPhone ?? 'this phone'} with an SMS code once. Next time you can log in with a code instead of your password.', style: t.bodyMedium),
-            ]),
-          ),
-        ]),
-      ),
-      const SizedBox(height: Space.lg),
-      MgButton(label: 'Send code', icon: Icons.send, expand: true, loading: busy, onPressed: onAccept),
-      const SizedBox(height: Space.sm),
-      TextButton(onPressed: busy ? null : onSkip, child: Text('Not now', style: t.labelLarge?.copyWith(color: c.muted))),
     ]);
   }
 }

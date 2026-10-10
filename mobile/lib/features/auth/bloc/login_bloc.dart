@@ -13,13 +13,16 @@ import '../data/phone_validator.dart';
 import 'login_event.dart';
 import 'login_state.dart';
 
+/// Two-step login. Step 1: number + password. Step 2: an SMS code sent to that number. The session only starts after a
+/// valid code; every other outcome (wrong role, wrong code 5 times, cancel, send failure) signs the user out again.
 class LoginBloc extends Bloc<LoginEvent, LoginState> {
-  LoginBloc({required AuthRepository auth, required ApiClient api, required SessionBloc session, required PushRegistrar push, OtpService? otp})
+  LoginBloc({required AuthRepository auth, required ApiClient api, required SessionBloc session, required PushRegistrar push, OtpService? otp, bool? otpGate})
       : _auth = auth,
         _api = api,
         _session = session,
         _push = push,
         _otp = otp ?? OtpService(),
+        _otpGate = otpGate ?? otpRequired,
         super(const LoginState()) {
     on<RoleSelected>((e, emit) => emit(state.copyWith(role: e.role, clearError: true, clearMismatch: true)));
     on<MismatchSwitchRequested>((e, emit) {
@@ -27,16 +30,9 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
       if (actual != null) emit(state.copyWith(role: actual, clearError: true, clearMismatch: true));
     });
     on<SubmitPressed>(_onSubmit);
-    on<LoginMethodChanged>((e, emit) {
-      if (state.otp == OtpPhase.linkOffer || state.otp == OtpPhase.linkAwaitingCode) return; // finish or skip the offer first
-      emit(state.copyWith(method: e.method, otp: OtpPhase.none, clearError: true, clearMismatch: true));
-    });
-    on<OtpSendRequested>(_onSend);
-    on<OtpResendRequested>(_onResend);
-    on<OtpChangeNumber>((e, emit) => emit(state.copyWith(otp: OtpPhase.none, clearError: true)));
     on<OtpCodeSubmitted>(_onCode);
-    on<OtpLinkAccepted>(_onLinkAccepted);
-    on<OtpLinkSkipped>((e, emit) => _complete(emit));
+    on<OtpResendRequested>(_onResend);
+    on<OtpCancelled>(_onCancel);
   }
 
   final AuthRepository _auth;
@@ -44,16 +40,17 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
   final SessionBloc _session;
   final PushRegistrar _push;
   final OtpService _otp;
+  final bool _otpGate;
 
   OtpSession? _otpSession;
-  SessionUser? _pendingUser; // password login done, waiting on the "enable OTP" offer
+  SessionUser? _pendingUser; // password and role are fine; waiting for the code
 
   static String _mask(String e164) => e164.length <= 4 ? e164 : '••••${e164.substring(e164.length - 4)}';
 
-  // ---------------------------------------------------------------- password login
+  // ---------------------------------------------------------------- step 1: number + password
 
   Future<void> _onSubmit(SubmitPressed e, Emitter<LoginState> emit) async {
-    if (state.status == LoginStatus.submitting) return;
+    if (state.status == LoginStatus.submitting || state.otp != OtpPhase.none) return;
     final phone = validatePhone(e.isoCode, e.national);
     if (!phone.isValid) {
       emit(state.copyWith(status: LoginStatus.failure, errorMessage: phone.error));
@@ -67,22 +64,19 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
     emit(state.copyWith(status: LoginStatus.submitting, clearError: true, clearMismatch: true));
     try {
       await _auth.signIn(phone.e164!, e.password);
-      final user = await _loadUser();
-      if (otpLinkPrompt && !_otp.phoneLinked) {
-        // Offer OTP login for next time. The session only starts once the user answers.
-        _pendingUser = user;
-        _otpSession = null;
-        emit(state.copyWith(status: LoginStatus.idle, otp: OtpPhase.linkOffer, maskedPhone: _mask(phone.e164!)));
+      final user = await _loadUser(); // checks role / active before any SMS is sent
+      if (!_otpGate) {
+        _start(user, emit);
         return;
       }
-      _start(user, emit);
+      _pendingUser = user;
+      await _sendCode(phone.e164!, emit);
     } on AuthFailure catch (f) {
-      emit(state.copyWith(status: LoginStatus.failure, errorMessage: f.message));
+      await _abort(emit, f.message);
     } on ApiException catch (ex) {
       await _failApi(ex, emit);
     } catch (_) {
-      await _auth.signOut();
-      emit(state.copyWith(status: LoginStatus.failure, errorMessage: 'Something went wrong. Please try again'));
+      await _abort(emit, 'Something went wrong. Please try again');
     }
   }
 
@@ -99,15 +93,22 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
     _push.register();
   }
 
-  void _complete(Emitter<LoginState> emit) {
-    final u = _pendingUser;
-    if (u != null) _start(u, emit);
+  /// Signs out and returns to step 1 with a message. The only way back from any failure after the password step.
+  Future<void> _abort(Emitter<LoginState> emit, String message) async {
+    _pendingUser = null;
+    _otpSession = null;
+    try {
+      await _auth.signOut();
+    } catch (_) {}
+    emit(state.copyWith(status: LoginStatus.failure, otp: OtpPhase.none, errorMessage: message));
   }
 
   Future<void> _failApi(ApiException ex, Emitter<LoginState> emit) async {
-    await _auth.signOut();
     _pendingUser = null;
     _otpSession = null;
+    try {
+      await _auth.signOut();
+    } catch (_) {}
     switch (ex.code) {
       case 'ROLE_MISMATCH':
         final actual = (ex.details is Map ? (ex.details as Map)['actualRole'] : null) as String?;
@@ -123,100 +124,70 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
     }
   }
 
-  // ---------------------------------------------------------------- OTP
+  // ---------------------------------------------------------------- step 2: SMS code
 
-  Future<void> _onSend(OtpSendRequested e, Emitter<LoginState> emit) async {
-    if (state.status == LoginStatus.submitting) return;
-    final phone = validatePhone(e.isoCode, e.national);
-    if (!phone.isValid) {
-      emit(state.copyWith(status: LoginStatus.failure, errorMessage: phone.error));
-      return;
+  Future<void> _sendCode(String e164, Emitter<LoginState> emit, {int? token}) async {
+    try {
+      final s = await _otp.send(e164, purpose: _otpSession?.purpose ?? _otp.purpose, resendToken: token);
+      _otpSession = s;
+      emit(state.copyWith(
+        status: LoginStatus.idle,
+        otp: OtpPhase.awaitingCode,
+        cooldownUntil: DateTime.now().add(otpResendCooldown),
+        attemptsLeft: otpMaxAttempts,
+        maskedPhone: _mask(e164),
+        clearError: true,
+      ));
+      if (s.instantCredential != null) add(const OtpCodeSubmitted('')); // Firebase verified the phone without a code
+    } on AuthFailure catch (f) {
+      await _abort(emit, f.message);
+    } catch (_) {
+      await _abort(emit, 'Could not send the code. Please try again');
     }
-    final wait = state.cooldownUntil;
-    if (wait != null && DateTime.now().isBefore(wait) && state.maskedPhone == _mask(phone.e164!)) {
-      emit(state.copyWith(status: LoginStatus.failure, errorMessage: 'Please wait before requesting another code'));
-      return;
-    }
-    await _sendTo(phone.e164!, emit, link: false);
   }
 
   Future<void> _onResend(OtpResendRequested e, Emitter<LoginState> emit) async {
     final s = _otpSession;
     final wait = state.cooldownUntil;
-    if (s == null || state.status == LoginStatus.submitting) return;
+    if (s == null || state.otp != OtpPhase.awaitingCode || state.status == LoginStatus.submitting) return;
     if (wait != null && DateTime.now().isBefore(wait)) return;
-    await _sendTo(s.e164, emit, link: s.linking, token: s.resendToken);
+    emit(state.copyWith(status: LoginStatus.submitting, clearError: true));
+    await _sendCode(s.e164, emit, token: s.resendToken);
   }
 
-  Future<void> _onLinkAccepted(OtpLinkAccepted e, Emitter<LoginState> emit) async {
-    final u = _pendingUser;
-    if (u == null || state.status == LoginStatus.submitting) return;
-    await _sendTo(u.phoneE164, emit, link: true);
-  }
-
-  Future<void> _sendTo(String e164, Emitter<LoginState> emit, {required bool link, int? token}) async {
-    emit(state.copyWith(status: LoginStatus.submitting, clearError: true, clearMismatch: true));
-    try {
-      final s = await _otp.send(e164, link: link, resendToken: token);
-      _otpSession = s;
-      emit(state.copyWith(
-        status: LoginStatus.idle,
-        otp: link ? OtpPhase.linkAwaitingCode : OtpPhase.awaitingCode,
-        cooldownUntil: DateTime.now().add(otpResendCooldown),
-        attemptsLeft: otpMaxAttempts,
-        maskedPhone: _mask(e164),
-      ));
-      if (s.instantCredential != null) add(const OtpCodeSubmitted('')); // Firebase verified the phone without a code
-    } on AuthFailure catch (f) {
-      // Failing to send must never trap a user who already passed the password step.
-      emit(state.copyWith(status: LoginStatus.failure, errorMessage: f.message, otp: link ? OtpPhase.linkOffer : OtpPhase.none));
-    } catch (_) {
-      emit(state.copyWith(status: LoginStatus.failure, errorMessage: 'Could not send the code. Please try again', otp: link ? OtpPhase.linkOffer : OtpPhase.none));
-    }
+  Future<void> _onCancel(OtpCancelled e, Emitter<LoginState> emit) async {
+    await _abort(emit, 'Login cancelled');
+    emit(state.copyWith(status: LoginStatus.idle, clearError: true));
   }
 
   Future<void> _onCode(OtpCodeSubmitted e, Emitter<LoginState> emit) async {
     final session = _otpSession;
-    if (session == null || state.status == LoginStatus.submitting) return;
+    final user = _pendingUser;
+    if (session == null || user == null || state.otp != OtpPhase.awaitingCode || state.status == LoginStatus.submitting) return;
     final code = e.code.trim();
     if (session.instantCredential == null && !RegExp(r'^\d{6}$').hasMatch(code)) {
       emit(state.copyWith(status: LoginStatus.failure, errorMessage: 'Enter the 6-digit code'));
       return;
     }
-    emit(state.copyWith(status: LoginStatus.submitting, clearError: true, clearMismatch: true));
+    emit(state.copyWith(status: LoginStatus.submitting, clearError: true));
     try {
       await _otp.confirm(session, code);
-      if (session.linking) {
-        _complete(emit); // phone linked; the password session is already valid
-      } else {
-        _start(await _loadUser(), emit);
-      }
+      _start(user, emit);
     } on AuthFailure catch (f) {
       if (f.code == 'WRONG_CODE') {
         final left = state.attemptsLeft - 1;
         if (left <= 0) {
-          _otpSession = null;
-          emit(state.copyWith(
-            status: LoginStatus.failure,
-            errorMessage: 'Too many wrong codes. Request a new code',
-            otp: session.linking ? OtpPhase.linkOffer : OtpPhase.none,
-            attemptsLeft: otpMaxAttempts,
-            cooldownUntil: DateTime.now().add(otpResendCooldown * 2),
-          ));
+          await _abort(emit, 'Too many wrong codes. Please log in again');
         } else {
           emit(state.copyWith(status: LoginStatus.failure, errorMessage: 'That code is not correct. $left ${left == 1 ? 'try' : 'tries'} left', attemptsLeft: left));
         }
-      } else if (session.linking) {
-        // Linking is optional: show why, and let the user retry or skip.
-        emit(state.copyWith(status: LoginStatus.failure, errorMessage: f.message, otp: f.code == 'CODE_EXPIRED' ? OtpPhase.linkOffer : OtpPhase.linkAwaitingCode));
+      } else if (f.code == 'CODE_EXPIRED') {
+        emit(state.copyWith(status: LoginStatus.failure, errorMessage: f.message)); // user can resend once the wait ends
       } else {
-        emit(state.copyWith(status: LoginStatus.failure, errorMessage: f.message, otp: f.code == 'CODE_EXPIRED' || f.code == 'OTP_NOT_ENABLED' ? OtpPhase.none : OtpPhase.awaitingCode));
+        await _abort(emit, f.message);
       }
-    } on ApiException catch (ex) {
-      await _failApi(ex, emit);
     } catch (_) {
-      await _auth.signOut();
-      emit(state.copyWith(status: LoginStatus.failure, errorMessage: 'Something went wrong. Please try again', otp: OtpPhase.none));
+      await _abort(emit, 'Something went wrong. Please try again');
     }
   }
 }

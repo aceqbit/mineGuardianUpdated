@@ -3,7 +3,7 @@ import 'package:equatable/equatable.dart';
 import '../../../core/models/session_user.dart';
 import '../data/signup_repository.dart';
 
-enum SignupStatus { idle, loadingZones, zonesFailed, submitting, failure, success }
+enum SignupStatus { idle, loadingZones, zonesFailed, submitting, verifying, failure, success }
 
 class SignupState extends Equatable {
   const SignupState({
@@ -26,6 +26,9 @@ class SignupState extends Equatable {
     this.alreadyRegistered = false,
     this.progressLabel,
     this.user,
+    this.otpMasked,
+    this.otpCooldownUntil,
+    this.otpAttemptsLeft = 5,
   });
 
   final int step;
@@ -47,6 +50,9 @@ class SignupState extends Equatable {
   final bool alreadyRegistered;
   final String? progressLabel;
   final SessionUser? user;
+  final String? otpMasked;
+  final DateTime? otpCooldownUntil;
+  final int otpAttemptsLeft;
 
   List<String> get mines => zones.map((z) => z.mineName).toSet().toList()..sort();
   List<ZoneOption> get zonesOfMine => zones.where((z) => z.mineName == mineName).toList();
@@ -73,6 +79,10 @@ class SignupState extends Equatable {
     bool? alreadyRegistered,
     String? progressLabel,
     SessionUser? user,
+    String? otpMasked,
+    DateTime? otpCooldownUntil,
+    int? otpAttemptsLeft,
+    bool clearOtp = false,
   }) =>
       SignupState(
         step: step ?? this.step,
@@ -94,8 +104,11 @@ class SignupState extends Equatable {
         alreadyRegistered: alreadyRegistered ?? this.alreadyRegistered,
         progressLabel: progressLabel ?? this.progressLabel,
         user: user ?? this.user,
+        otpMasked: clearOtp ? null : (otpMasked ?? this.otpMasked),
+        otpCooldownUntil: otpCooldownUntil ?? this.otpCooldownUntil,
+        otpAttemptsLeft: otpAttemptsLeft ?? this.otpAttemptsLeft,
       );
 
   @override
-  List<Object?> get props => [step, status, zones, role, mineName, zoneId, shift, designation, experienceYears, dateOfJoining, dob, bloodGroup, relation, consent, errorMessage, errorStep, alreadyRegistered, progressLabel, user];
+  List<Object?> get props => [step, status, zones, role, mineName, zoneId, shift, designation, experienceYears, dateOfJoining, dob, bloodGroup, relation, consent, errorMessage, errorStep, alreadyRegistered, progressLabel, user, otpMasked, otpCooldownUntil, otpAttemptsLeft];
 }
