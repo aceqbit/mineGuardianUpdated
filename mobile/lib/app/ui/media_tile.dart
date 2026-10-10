@@ -1,12 +1,10 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../theme/motion.dart';
 import '../theme/tokens.dart';
 import 'tile_art.dart';
 
-/// Image tile: network image, dark gradient, centred 56 px glass icon badge, shimmer, gradient fallback.
+/// Illustrated tile: art drawn in code (see tile_art.dart), dark gradient for legible text, corner glass icon badge, title and subtitle.
 class MediaTile extends StatelessWidget {
   const MediaTile({super.key, required this.imageUrl, required this.icon, required this.title, this.subtitle, this.onTap, this.aspectRatio = 1.15});
   final String imageUrl;
@@ -39,15 +37,8 @@ class MediaTile extends StatelessWidget {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  // The drawn illustration is always there; the photo fades in over it when (and if) it loads.
+                  // Drawn illustration only: network photos rendered as solid black boxes in Chrome and added nothing offline.
                   TileArt(kind: tileArtFor(imageUrl)),
-                  CachedNetworkImage(
-                    imageUrl: imageUrl,
-                    fit: BoxFit.cover,
-                    fadeInDuration: Motion.of(context, Motion.slow),
-                    placeholder: (_, _) => const SizedBox.shrink(),
-                    errorWidget: (_, _, _) => const SizedBox.shrink(),
-                  ),
                   DecoratedBox(
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
