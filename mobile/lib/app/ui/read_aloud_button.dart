@@ -42,7 +42,7 @@ class _ReadAloudButtonState extends State<ReadAloudButton> {
         final mine = st.speaking && st.owner == widget.owner;
         final icon = mine ? Icons.stop_circle_outlined : Icons.volume_up_rounded;
         final tip = mine ? 'Stop reading' : 'Read aloud';
-        final color = widget.onDark ? Colors.white : c.amber600;
+        final color = widget.onDark ? Colors.white : c.amberText;
         if (widget.label == null) {
           return IconButton(tooltip: tip, icon: Icon(icon, color: color), onPressed: () => _toggle(mine));
         }

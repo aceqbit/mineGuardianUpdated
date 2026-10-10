@@ -246,7 +246,7 @@ class _LoginViewState extends State<_LoginView> with SingleTickerProviderStateMi
           const SizedBox(height: Space.lg),
           Wrap(alignment: WrapAlignment.spaceBetween, crossAxisAlignment: WrapCrossAlignment.center, children: [
             if (s.role != Role.admin)
-              TextButton(onPressed: () => context.go(Routes.signup), child: Text('New to Mine Guardian? Create account', style: t.labelLarge?.copyWith(color: c.amber600))),
+              TextButton(onPressed: () => context.go(Routes.signup), child: Text('New to Mine Guardian? Create account', style: t.labelLarge?.copyWith(color: c.amberText))),
             TextButton(onPressed: () => _forgot(context), child: Text('Forgot password?', style: t.labelLarge?.copyWith(color: c.muted))),
           ]),
         ],

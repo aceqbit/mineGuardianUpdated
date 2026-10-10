@@ -40,7 +40,7 @@ class _MgButtonState extends State<MgButton> {
     final (bg, fg, border) = switch (widget.kind) {
       MgButtonKind.primary => (c.amber500, c.ink900, Colors.transparent),
       MgButtonKind.secondary => (c.surface, c.text, c.border),
-      MgButtonKind.danger => (c.danger, Colors.white, Colors.transparent),
+      MgButtonKind.danger => (c.dangerFill, Colors.white, Colors.transparent),
       MgButtonKind.ghost => (Colors.transparent, c.text, Colors.transparent),
     };
     final child = AnimatedSwitcher(

@@ -32,6 +32,15 @@ class MgColors extends ThemeExtension<MgColors> {
     required this.info,
     required this.infoBg,
     required this.positionBlue,
+    required this.amberText,
+    required this.successFill,
+    required this.dangerFill,
+    required this.warningFill,
+    required this.infoFill,
+    required this.surfaceTint,
+    required this.medalGold,
+    required this.medalSilver,
+    required this.medalBronze,
   });
 
   final Color ink900, ink800, ink700, ink600;
@@ -42,6 +51,19 @@ class MgColors extends ThemeExtension<MgColors> {
 
   /// "You are here" on maps.
   final Color positionBlue;
+
+  /// Amber used as TEXT or a thin icon on a surface (amber500 is a fill colour: it fails contrast as text on white).
+  final Color amberText;
+
+  /// Solid fills that carry white text (banners, toasts, danger buttons). The plain status colours are for text and icons
+  /// on a surface and are lighter in dark mode, so they cannot hold white text.
+  final Color successFill, dangerFill, warningFill, infoFill;
+
+  /// A faint tonal step between bg and surface so grouped content has depth.
+  final Color surfaceTint;
+
+  /// Podium and rank medals.
+  final Color medalGold, medalSilver, medalBronze;
 
   static const light = MgColors(
     ink900: Color(0xFF0B1220),
@@ -57,21 +79,30 @@ class MgColors extends ThemeExtension<MgColors> {
     surface: Color(0xFFFFFFFF),
     surfaceRaised: Color(0xFFFFFFFF),
     text: Color(0xFF0B1220),
-    muted: Color(0xFF64748B),
+    muted: Color(0xFF556478),
     border: Color(0xFFE2E8F0),
     amber500: Color(0xFFF59E0B),
     amber600: Color(0xFFD97706),
     amber50: Color(0xFFFFF7E6),
-    success: Color(0xFF16A34A),
+    success: Color(0xFF15803D),
     successBg: Color(0xFFECFDF3),
-    warning: Color(0xFFD97706),
+    warning: Color(0xFFB45309),
     warningBg: Color(0xFFFFF7E6),
-    danger: Color(0xFFDC2626),
+    danger: Color(0xFFC81E1E),
     dangerBg: Color(0xFFFEF2F2),
     crisis: Color(0xFF7F1D1D),
     info: Color(0xFF0E7490),
     infoBg: Color(0xFFECFEFF),
     positionBlue: Color(0xFF2563EB),
+    amberText: Color(0xFFB45309),
+    successFill: Color(0xFF15803D),
+    dangerFill: Color(0xFFC81E1E),
+    warningFill: Color(0xFFB45309),
+    infoFill: Color(0xFF0E7490),
+    surfaceTint: Color(0xFFF3F6FB),
+    medalGold: Color(0xFF8A6400),
+    medalSilver: Color(0xFF6B7280),
+    medalBronze: Color(0xFF9A5B24),
   );
 
   static const dark = MgColors(
@@ -103,6 +134,15 @@ class MgColors extends ThemeExtension<MgColors> {
     info: Color(0xFF22D3EE),
     infoBg: Color(0xFF0D2A33),
     positionBlue: Color(0xFF60A5FA),
+    amberText: Color(0xFFF59E0B),
+    successFill: Color(0xFF15803D),
+    dangerFill: Color(0xFFB91C1C),
+    warningFill: Color(0xFFB45309),
+    infoFill: Color(0xFF0E7490),
+    surfaceTint: Color(0xFF16213A),
+    medalGold: Color(0xFFE5B93C),
+    medalSilver: Color(0xFFC0C7D1),
+    medalBronze: Color(0xFFD08A4E),
   );
 
   static MgColors of(BuildContext context) => Theme.of(context).extension<MgColors>() ?? light;

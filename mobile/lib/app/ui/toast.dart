@@ -10,9 +10,9 @@ class Toast {
   static void show(BuildContext context, String message, {ToastKind kind = ToastKind.info, Duration duration = const Duration(seconds: 3)}) {
     final c = MgColors.of(context);
     final (bg, icon) = switch (kind) {
-      ToastKind.success => (c.success, Icons.check_circle),
-      ToastKind.error => (c.danger, Icons.error),
-      ToastKind.warning => (c.warning, Icons.warning_amber),
+      ToastKind.success => (c.successFill, Icons.check_circle),
+      ToastKind.error => (c.dangerFill, Icons.error),
+      ToastKind.warning => (c.warningFill, Icons.warning_amber),
       ToastKind.info => (c.ink700, Icons.info),
     };
     final messenger = ScaffoldMessenger.maybeOf(context);

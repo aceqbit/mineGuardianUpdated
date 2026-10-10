@@ -53,7 +53,7 @@ class _Card extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.all(Space.md),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [
-                  Icon(category.icon, size: 26, color: selected ? c.amber600 : c.muted),
+                  Icon(category.icon, size: 26, color: selected ? c.amberText : c.muted),
                   const SizedBox(height: Space.sm),
                   Text(category.label, maxLines: 2, overflow: TextOverflow.ellipsis, style: t.titleMedium?.copyWith(fontSize: 14, color: selected ? c.ink900.withValues(alpha: 1) : c.text)),
                   const SizedBox(height: 2),

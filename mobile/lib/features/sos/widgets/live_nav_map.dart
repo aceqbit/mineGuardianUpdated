@@ -234,7 +234,7 @@ class _TargetPin extends StatelessWidget {
     return Column(mainAxisSize: MainAxisSize.min, children: [
       Container(
         padding: const EdgeInsets.symmetric(horizontal: Space.sm, vertical: Space.xs),
-        decoration: BoxDecoration(color: colors.success, borderRadius: BorderRadius.circular(Radii.pill), boxShadow: Shadows.level(2)),
+        decoration: BoxDecoration(color: colors.successFill, borderRadius: BorderRadius.circular(Radii.pill), boxShadow: Shadows.level(2)),
         child: Text('TARGET · $label', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w800)),
       ),
       _Breathe(scale: 0.12, child: Icon(Icons.flag_circle, color: colors.success, size: 40)),
@@ -282,13 +282,13 @@ class _TopCard extends StatelessWidget {
     if (s.arrived) {
       title = 'You have reached ${route?.exit.name ?? 'the exit'}';
       sub = 'Report to your supervisor so you are counted safe';
-      bg = colors.success;
+      bg = colors.successFill;
       fg = Colors.white;
       icon = Icons.verified;
     } else if (control != null) {
       title = 'Control room route · ${control.exitName}';
       sub = '~${(control.etaSec / 60).ceil().clamp(1, 999)} min';
-      bg = colors.success;
+      bg = colors.successFill;
       fg = Colors.white;
       icon = Icons.alt_route;
     } else if (route != null) {
@@ -299,7 +299,7 @@ class _TopCard extends StatelessWidget {
     } else {
       title = 'No safe route found';
       sub = 'Follow signs to the nearest exit';
-      bg = colors.warning;
+      bg = colors.warningFill;
       fg = Colors.white;
       icon = Icons.warning_amber;
     }

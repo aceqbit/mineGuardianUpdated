@@ -73,7 +73,7 @@ class EvacMapPainter extends CustomPainter {
       final path = Path()..addPolygon(z.ring.map(px).toList(), true);
       final own = z.code == ownZone;
       canvas.drawPath(path, Paint()..color = (own ? c.amber500 : c.slate400).withValues(alpha: own ? 0.10 : 0.06));
-      canvas.drawPath(path, Paint()..color = own ? c.amber600 : c.slate300..style = PaintingStyle.stroke..strokeWidth = own ? 2.5 : 1);
+      canvas.drawPath(path, Paint()..color = own ? c.amberText : c.slate300..style = PaintingStyle.stroke..strokeWidth = own ? 2.5 : 1);
       final centre = path.getBounds().topCenter + const Offset(0, 14);
       _text(canvas, z.code, centre, c.muted, 12, bold: own);
     }

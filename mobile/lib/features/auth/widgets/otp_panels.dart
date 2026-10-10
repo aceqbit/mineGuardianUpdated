@@ -25,7 +25,7 @@ class OtpStepper extends StatelessWidget {
         width: 28,
         height: 28,
         alignment: Alignment.center,
-        decoration: BoxDecoration(shape: BoxShape.circle, color: done || active ? c.amber500 : c.slate200, border: Border.all(color: active ? c.amber600 : Colors.transparent, width: 2)),
+        decoration: BoxDecoration(shape: BoxShape.circle, color: done || active ? c.amber500 : c.slate200, border: Border.all(color: active ? c.amberText : Colors.transparent, width: 2)),
         child: done ? Icon(Icons.check, size: 16, color: c.ink900) : Text('${i + 1}', style: t.labelMedium?.copyWith(color: active ? c.ink900 : c.slate500)),
       );
     }
@@ -150,7 +150,7 @@ class _OtpCodeEntryState extends State<OtpCodeEntry> with SingleTickerProviderSt
             final secs = _secondsLeft;
             return TextButton(
               onPressed: secs > 0 || widget.busy ? null : widget.onResend,
-              child: Text(secs > 0 ? 'Resend code in ${secs}s' : 'Resend code', style: t.labelLarge?.copyWith(color: secs > 0 ? c.muted : c.amber600)),
+              child: Text(secs > 0 ? 'Resend code in ${secs}s' : 'Resend code', style: t.labelLarge?.copyWith(color: secs > 0 ? c.muted : c.amberText)),
             );
           },
         ),

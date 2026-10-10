@@ -182,7 +182,7 @@ class _CrisisBanner extends StatelessWidget {
           button: true,
           label: text,
           child: Material(
-            color: resolved ? c.success : c.crisis,
+            color: resolved ? c.successFill : c.crisis,
             child: InkWell(
               onTap: () => onGo(route),
               child: Padding(
@@ -264,7 +264,7 @@ class BroadcastBanners extends StatelessWidget {
               label: '${m.priority.label} message from ${m.senderName}: ${m.text}',
               child: Material(
                 key: ValueKey('bc-${m.id}'),
-                color: m.priority == BroadcastPriority.emergency ? c.crisis : c.warning,
+                color: m.priority == BroadcastPriority.emergency ? c.crisis : c.warningFill,
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: Space.lg, vertical: Space.sm),
                   child: Row(children: [

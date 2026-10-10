@@ -26,7 +26,7 @@ class SyncIndicator extends StatelessWidget {
         var spin = false;
         if (s.isSyncing) {
           icon = Icons.sync;
-          color = c.amber600;
+          color = c.amberText;
           label = 'Syncing 1 of ${s.pendingCount}';
           spin = true;
         } else if (s.isOffline) {
@@ -39,7 +39,7 @@ class SyncIndicator extends StatelessWidget {
           label = '${s.failedCount} failed — tap';
         } else if (s.pendingCount > 0) {
           icon = Icons.cloud_upload;
-          color = c.amber600;
+          color = c.amberText;
           label = '${s.pendingCount} queued';
         } else {
           icon = Icons.check_circle;
