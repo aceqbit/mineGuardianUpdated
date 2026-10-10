@@ -146,14 +146,28 @@ class _GlobalOverlaysState extends State<GlobalOverlays> with SingleTickerProvid
             ),
             BlocListener<CrisisBloc, CrisisState>(listenWhen: (a, b) => a.phase != CrisisPhase.resolved && b.phase == CrisisPhase.resolved, listener: (context, s) => _onResolved()),
           ],
-          child: Stack(children: [
-            Positioned.fill(child: widget.child),
-            if (session is SessionAuthenticated) ...[
-              Positioned(top: 0, left: 0, right: 0, child: SafeArea(bottom: false, child: Column(mainAxisSize: MainAxisSize.min, children: [_CrisisBanner(role: session.user.role, onGo: _go), const BroadcastBanners()]))),
-              Positioned.fill(child: IgnorePointer(child: AnimatedBuilder(animation: _flash, builder: (_, _) => ColoredBox(color: MgColors.of(context).crisis.withValues(alpha: 0.45 * _flash.value))))),
-              Positioned(right: Space.md, bottom: Space.x4 + Space.lg, child: _SirenChip(siren: _siren!)),
-            ],
-          ]),
+          // Banners PUSH the app down instead of floating over it, so they never cover the top bar (and the SOS button in it).
+          child: BlocBuilder<CrisisBloc, CrisisState>(
+            builder: (context, crisis) => BlocBuilder<BroadcastInboxBloc, BroadcastInboxState>(
+              builder: (context, inbox) {
+                final signedIn = session is SessionAuthenticated;
+                final bannerShown = signedIn && (crisis.phase != CrisisPhase.idle || inbox.sticky.isNotEmpty || inbox.toast != null);
+                return Stack(children: [
+                  Positioned.fill(
+                    child: Column(children: [
+                      if (bannerShown) SafeArea(bottom: false, child: Column(mainAxisSize: MainAxisSize.min, children: [_CrisisBanner(role: session.user.role, onGo: _go), const BroadcastBanners()])),
+                      // The banner already used the top safe-area inset, so the app below must not add it again.
+                      Expanded(child: bannerShown ? MediaQuery.removePadding(context: context, removeTop: true, child: widget.child) : widget.child),
+                    ]),
+                  ),
+                  if (signedIn) ...[
+                    Positioned.fill(child: IgnorePointer(child: AnimatedBuilder(animation: _flash, builder: (_, _) => ColoredBox(color: MgColors.of(context).crisis.withValues(alpha: 0.45 * _flash.value))))),
+                    Positioned(right: Space.md, bottom: Space.x4 + Space.lg, child: _SirenChip(siren: _siren!)),
+                  ],
+                ]);
+              },
+            ),
+          ),
         ),
       ),
     );
