@@ -12,3 +12,9 @@ const bool otpRequired = bool.fromEnvironment('OTP_REQUIRED', defaultValue: true
 /// Shows the "Simulate walk" control in the evacuation view of release builds too (always available in debug builds):
 /// --dart-define=NAV_SIMULATE=true
 const bool navSimulate = bool.fromEnvironment('NAV_SIMULATE', defaultValue: false);
+
+/// How verification codes are delivered. `firebase` (default) sends a real SMS through Firebase phone auth.
+/// `demo` is for presentations when SMS is not available: a random code is generated on the device and shown on screen
+/// in a clearly labelled DEMO banner. No SMS is sent and it is not a security control.
+/// --dart-define=OTP_MODE=demo
+const String otpMode = String.fromEnvironment('OTP_MODE', defaultValue: 'firebase');

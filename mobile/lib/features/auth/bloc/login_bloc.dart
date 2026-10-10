@@ -4,6 +4,7 @@ import '../../../config.dart';
 import '../../../contracts/enums.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/auth/auth_repository.dart';
+import '../../../core/auth/demo_otp_service.dart';
 import '../../../core/auth/otp_service.dart';
 import '../../../core/auth/session_bloc.dart';
 import '../../../core/models/session_user.dart';
@@ -21,7 +22,7 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
         _api = api,
         _session = session,
         _push = push,
-        _otp = otp ?? OtpService(),
+        _otp = otp ?? createOtpService(),
         _otpGate = otpGate ?? otpRequired,
         super(const LoginState()) {
     on<RoleSelected>((e, emit) => emit(state.copyWith(role: e.role, clearError: true, clearMismatch: true)));

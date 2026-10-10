@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../config.dart';
 import '../../../core/auth/auth_repository.dart' show AuthFailure;
+import '../../../core/auth/demo_otp_service.dart';
 import '../../../core/auth/otp_service.dart';
 import '../data/signup_repository.dart';
 import 'login_state.dart' show otpMaxAttempts, otpResendCooldown;
@@ -14,7 +15,7 @@ import 'signup_state.dart';
 class SignupBloc extends Bloc<SignupEvent, SignupState> {
   SignupBloc({required SignupRepository repo, OtpService? otp, bool? otpGate})
       : _repo = repo,
-        _otp = otp ?? OtpService(),
+        _otp = otp ?? createOtpService(),
         _otpGate = otpGate ?? otpRequired,
         super(const SignupState()) {
     on<SignupStarted>(_onStarted);
