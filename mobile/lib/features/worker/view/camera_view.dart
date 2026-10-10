@@ -1,5 +1,6 @@
 
 import 'package:camera/camera.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -31,6 +32,7 @@ class _CameraViewState extends State<CameraView> with WidgetsBindingObserver {
   FlashMode _flash = FlashMode.off;
   bool _timerOn = false;
   bool _busy = false;
+  double _zoom = 1, _zoomBase = 1, _minZoom = 1, _maxZoom = 1;
 
   @override
   void initState() {
@@ -42,8 +44,9 @@ class _CameraViewState extends State<CameraView> with WidgetsBindingObserver {
   Future<void> _init({bool keepIndex = false}) async {
     setState(() => _state = _CamState.init);
     try {
-      final status = await Permission.camera.request();
-      if (!status.isGranted) {
+      // On web the browser prompts during initialize(); permission_handler has no camera support there.
+      final granted = kIsWeb || (await Permission.camera.request()).isGranted;
+      if (!granted) {
         if (mounted) setState(() => _state = _CamState.denied);
         return;
       }
@@ -60,6 +63,11 @@ class _CameraViewState extends State<CameraView> with WidgetsBindingObserver {
       final c = CameraController(_cams[_index], ResolutionPreset.veryHigh, enableAudio: false, imageFormatGroup: ImageFormatGroup.jpeg);
       await c.initialize();
       await c.setFlashMode(_flash);
+      try {
+        _minZoom = await c.getMinZoomLevel();
+        _maxZoom = await c.getMaxZoomLevel();
+        _zoom = _minZoom;
+      } catch (_) {}
       if (!mounted) {
         await c.dispose();
         return;
@@ -70,6 +78,7 @@ class _CameraViewState extends State<CameraView> with WidgetsBindingObserver {
       });
     } catch (_) {
       if (mounted) setState(() => _state = _CamState.error);
+      widget.onNoCamera?.call();
     }
   }
 
@@ -142,7 +151,19 @@ class _CameraViewState extends State<CameraView> with WidgetsBindingObserver {
       case _CamState.ready:
         final ctrl = _ctrl!;
         body = Stack(fit: StackFit.expand, children: [
-          ColoredBox(color: Colors.black, child: Center(child: CameraPreview(ctrl))),
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onScaleStart: (_) => _zoomBase = _zoom,
+            onScaleUpdate: (d) async {
+              final z = (_zoomBase * d.scale).clamp(_minZoom, _maxZoom);
+              if (z == _zoom) return;
+              _zoom = z;
+              try {
+                await ctrl.setZoomLevel(z);
+              } catch (_) {}
+            },
+            child: ColoredBox(color: Colors.black, child: Center(child: CameraPreview(ctrl))),
+          ),
           if (widget.showSilhouette) const SilhouetteOverlay(),
           if (widget.showSilhouette)
             Positioned(

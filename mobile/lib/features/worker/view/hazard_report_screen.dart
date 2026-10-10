@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -97,9 +96,9 @@ class _ViewState extends State<_View> {
     }
     if (r == null) {
       return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        if (!kIsWeb) MgButton(label: 'Capture with camera', icon: Icons.photo_camera, expand: true, onPressed: _camera),
-        if (!kIsWeb) const SizedBox(height: Space.md),
-        MgButton(label: 'Insert from gallery', kind: kIsWeb ? MgButtonKind.primary : MgButtonKind.secondary, icon: Icons.photo_library, expand: true, onPressed: _gallery),
+        MgButton(label: 'Capture with camera', icon: Icons.photo_camera, expand: true, onPressed: _camera),
+        const SizedBox(height: Space.md),
+        MgButton(label: 'Insert from gallery', kind: MgButtonKind.secondary, icon: Icons.photo_library, expand: true, onPressed: _gallery),
       ]);
     }
     final first = r.firstFailure;
@@ -118,7 +117,7 @@ class _ViewState extends State<_View> {
       const SizedBox(height: Space.md),
       MgButton(label: r.source == 'camera' ? 'Retake photo' : 'Choose another photo', kind: MgButtonKind.secondary, icon: Icons.refresh, expand: true, onPressed: () {
         context.read<HazardReportBloc>().add(const HazardPhotoCleared());
-        if (r.source == 'camera' && !kIsWeb) {
+        if (r.source == 'camera') {
           _camera();
         } else {
           _gallery();

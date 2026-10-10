@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -57,7 +56,7 @@ class _CaptureViewState extends State<_CaptureView> {
   Widget build(BuildContext context) {
     final c = MgColors.of(context);
     return BlocBuilder<CaptureBloc, CaptureState>(builder: (context, s) {
-      if (s.phase == CapturePhase.camera && !kIsWeb) {
+      if (s.phase == CapturePhase.camera) {
         return Scaffold(
           backgroundColor: Colors.black,
           body: CameraView(
@@ -80,7 +79,7 @@ class _CaptureViewState extends State<_CaptureView> {
                 report: s.report,
                 mode: GateMode.checkin,
                 gating: s.phase == CapturePhase.gating,
-                cameraAvailable: !kIsWeb && !_noCamera,
+                cameraAvailable: !_noCamera,
                 onRetake: () => context.read<CaptureBloc>().add(const RetakeRequested(toCamera: true)),
                 onChooseAnother: () {
                   context.read<CaptureBloc>().add(const RetakeRequested());
@@ -108,7 +107,7 @@ class _CaptureViewState extends State<_CaptureView> {
         child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           const SectionHeader(title: 'How would you like to add your photo?', subtitle: 'Stand 2–3 m away so your whole body, head to boots, is visible.'),
           AdaptiveGrid(minTileWidth: 240, maxColumns: 2, aspectRatio: 1.5, children: [
-            if (!kIsWeb && !_noCamera)
+            if (!_noCamera)
               MediaTile(imageUrl: AppImages.capture, icon: Icons.photo_camera, title: 'Capture with camera', subtitle: 'Recommended', aspectRatio: 1.5, onTap: () => context.read<CaptureBloc>().add(const CameraOpened())),
             MediaTile(imageUrl: AppImages.supervisorFeed, icon: Icons.photo_library, title: 'Insert from gallery', subtitle: 'Photo must be fresh', aspectRatio: 1.5, onTap: _pickGallery),
           ]),
