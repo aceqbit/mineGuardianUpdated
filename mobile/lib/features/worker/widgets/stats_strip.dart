@@ -17,10 +17,9 @@ class StatsStrip extends StatelessWidget {
     final s = stats;
     final grid = AdaptiveGrid(
       fixedTileHeight: 128,
-      maxColumns: 4,
-      minTileWidth: 140,
+      maxColumns: 3,
+      minTileWidth: 120,
       children: [
-        StatCard(label: 'Safety score', value: s?.score, icon: Icons.shield, tone: flash ? c.amberText : null, hint: s == null ? null : 'of 1000'),
         StatCard(label: 'Streak', value: s?.streak, icon: Icons.local_fire_department, suffix: s == null ? '' : ' d', tone: flash ? c.amberText : null),
         StatCard(label: 'XP', value: s?.xp, icon: Icons.bolt, tone: flash ? c.amberText : null),
         StatCard(label: 'Rank', value: s?.rank, prefix: s == null ? null : '#', icon: Icons.emoji_events, tone: flash ? c.amberText : null),

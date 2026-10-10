@@ -5,6 +5,7 @@ import '../../../app/app_images.dart';
 import '../../../app/theme/tokens.dart';
 import '../../../app/ui/mg_button.dart';
 import '../../../app/ui/mg_card.dart';
+import '../../../app/ui/score_ring.dart';
 import '../../../app/ui/skeleton.dart';
 import '../data/admin_repository.dart';
 
@@ -44,9 +45,11 @@ class ZoneCard extends StatelessWidget {
             const SizedBox(height: Space.md),
             Text('${zone.minersCount} miners', style: t.bodyMedium),
             const SizedBox(height: Space.xs),
-            Text('Checked in today ${zone.checkedInToday}/${zone.minersCount}', style: t.labelMedium),
-            const SizedBox(height: Space.xs),
-            ClipRRect(borderRadius: BorderRadius.circular(4), child: LinearProgressIndicator(value: frac, minHeight: 6, backgroundColor: c.border, color: c.success)),
+            Row(children: [
+              ScoreRing(value: (frac * 100).round(), max: 100, size: 52, color: c.success, center: Text('${(frac * 100).round()}%', style: t.labelMedium)),
+              const SizedBox(width: Space.md),
+              Expanded(child: Text(zone.minersCount == 0 ? 'No miners yet' : '${zone.checkedInToday} of ${zone.minersCount} checked in', style: t.bodySmall)),
+            ]),
             if (exits.isNotEmpty && onExitChosen != null) ...[
               const SizedBox(height: Space.md),
               Text('Emergency exit', style: t.labelMedium),

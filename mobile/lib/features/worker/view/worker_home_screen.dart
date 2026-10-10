@@ -23,7 +23,7 @@ import '../bloc/worker_home_event.dart';
 import '../bloc/worker_home_state.dart';
 import '../data/worker_repository.dart';
 import '../widgets/recent_checkins.dart';
-import '../widgets/shift_header.dart';
+import '../widgets/worker_hero.dart';
 import '../widgets/sos_button.dart';
 import '../widgets/stats_strip.dart';
 
@@ -125,7 +125,7 @@ class _WorkerHomeViewState extends State<_WorkerHomeView> with WidgetsBindingObs
             children: [
               ContentWidth(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                  ShiftHeader(user: user, connected: socket.connection$),
+                  WorkerHero(user: user, connected: socket.connection$, stats: s.stats),
                   const SizedBox(height: Space.x2),
                   StatsStrip(stats: s.stats, flash: s.statsFlash),
                   const SizedBox(height: Space.x2),

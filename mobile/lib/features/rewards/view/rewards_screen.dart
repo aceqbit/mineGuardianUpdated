@@ -148,7 +148,7 @@ class _RewardCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = MgColors.of(context);
     final t = Theme.of(context).textTheme;
-    final medal = switch (r.rank) { 1 => const Color(0xFFD4AF37), 2 => const Color(0xFF9CA3AF), _ => const Color(0xFFB87333) };
+    final medal = switch (r.rank) { 1 => c.medalGold, 2 => c.medalSilver, _ => c.medalBronze };
     return Padding(
       padding: const EdgeInsets.only(bottom: Space.md),
       child: MgCard(

@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../../app/responsive.dart';
 import '../../../app/theme/tokens.dart';
 import '../../../app/ui/mg_button.dart';
+import '../../../app/ui/success_burst.dart';
 import '../../../app/ui/mg_card.dart';
 import '../../../app/ui/section_header.dart';
 import '../../../app/ui/sync_indicator.dart';
@@ -164,6 +165,7 @@ class _ViewState extends State<_View> {
     final bloc = context.read<HazardReportBloc>();
     final reachedServer = f.stage.index >= TickerStage.synced.index && f.phase != FlowPhase.failed;
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      if (f.phase == FlowPhase.done) const Center(child: SuccessBurst(size: 96)),
       StatusTicker(state: f, startedAt: _startedAt),
       const SizedBox(height: Space.x2),
       if (f.phase == FlowPhase.failed)

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../app/responsive.dart';
 import '../../../app/theme/tokens.dart';
 import '../../../app/ui/mg_button.dart';
+import '../../../app/ui/success_burst.dart';
 import '../../../contracts/routes.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/socket/socket_service.dart';
@@ -51,6 +52,7 @@ class _View extends StatelessWidget {
             child: ContentWidth(
               maxWidth: 760,
               child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                if (s.phase == FlowPhase.done) Center(child: SuccessBurst(size: 96)),
                 StatusTicker(state: s, startedAt: startedAt),
                 const SizedBox(height: Space.x2),
                 ..._actions(context, s),

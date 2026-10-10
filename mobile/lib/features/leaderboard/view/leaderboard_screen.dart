@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../app/theme/motion.dart';
 import '../../../app/theme/tokens.dart';
 import '../../../app/ui/animated_counter.dart';
 import '../../../app/ui/empty_state.dart';
@@ -83,10 +84,11 @@ class _ViewState extends State<_View> {
                         ),
                         const SizedBox(height: Space.md),
                       ],
+                      if (rows.length >= 5) ...[_Podium(rows: rows.take(3).toList(), myId: widget.myId), const SizedBox(height: Space.lg)],
                       if (rows.isEmpty)
                         const EmptyState(icon: Icons.leaderboard, title: 'No scores yet', message: 'Scores appear after reviewed check-ins.')
                       else
-                        for (final r in rows) _RowTile(row: r, mine: r.userId == widget.myId, supervisor: _supervisors),
+                        for (final r in (rows.length >= 5 ? rows.skip(3) : rows)) _RowTile(row: r, mine: r.userId == widget.myId, supervisor: _supervisors),
                     ]),
                   ),
                 ),
@@ -142,7 +144,7 @@ class _RowTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = MgColors.of(context);
-    final medal = switch (row.rank) { 1 => const Color(0xFFD4AF37), 2 => const Color(0xFF9CA3AF), 3 => const Color(0xFFB87333), _ => null };
+    final medal = switch (row.rank) { 1 => c.medalGold, 2 => c.medalSilver, 3 => c.medalBronze, _ => null };
     return Container(
       key: ValueKey('lb-${row.userId}'),
       margin: const EdgeInsets.only(bottom: Space.sm),
@@ -158,6 +160,52 @@ class _RowTile extends StatelessWidget {
           ]),
         ),
         Text('${row.score}', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+      ]),
+    );
+  }
+}
+
+/// Top three as podium bars that grow in. Order on screen: 2nd, 1st, 3rd.
+class _Podium extends StatelessWidget {
+  const _Podium({required this.rows, this.myId});
+  final List<LeaderRow> rows;
+  final String? myId;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = MgColors.of(context);
+    final t = Theme.of(context).textTheme;
+    final order = [rows[1], rows[0], rows[2]];
+    final heights = {1: 112.0, 2: 84.0, 3: 64.0};
+    final medals = {1: c.medalGold, 2: c.medalSilver, 3: c.medalBronze};
+    return Semantics(
+      label: 'Top three: ${rows.map((r) => '${r.rank} ${r.name} ${r.score}').join(', ')}',
+      child: Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+        for (final r in order)
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: Space.xs),
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                Icon(Icons.emoji_events, color: medals[r.rank] ?? c.muted, size: r.rank == 1 ? 34 : 26),
+                const SizedBox(height: Space.xs),
+                Text(r.name, maxLines: 1, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center, style: t.labelLarge),
+                Text('${r.score}', style: t.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+                const SizedBox(height: Space.xs),
+                TweenAnimationBuilder<double>(
+                  tween: Tween(begin: 0, end: heights[r.rank] ?? 56),
+                  duration: Motion.of(context, Motion.slower),
+                  curve: Motion.easeOut,
+                  builder: (context, h, _) => Container(
+                    height: h,
+                    alignment: Alignment.topCenter,
+                    padding: const EdgeInsets.only(top: Space.sm),
+                    decoration: BoxDecoration(color: r.userId == myId ? c.amber50 : c.surfaceTint, border: Border.all(color: medals[r.rank] ?? c.border, width: 2), borderRadius: const BorderRadius.vertical(top: Radius.circular(Radii.sm))),
+                    child: Text('#${r.rank}', style: t.titleMedium?.copyWith(color: medals[r.rank])),
+                  ),
+                ),
+              ]),
+            ),
+          ),
       ]),
     );
   }

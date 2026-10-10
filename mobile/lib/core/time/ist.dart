@@ -45,3 +45,27 @@ String relativeTime(DateTime t, {DateTime? now}) {
   if (d.inHours < 24) return '${d.inHours} h ago';
   return DateFormat('d MMM, HH:mm').format(toIst(t));
 }
+
+/// Where [istWall] sits inside [shift]: whether it is open, how much of it has elapsed (0..1) and minutes left.
+/// Shift C wraps midnight. Outside the window `open` is false and `fraction` is 0.
+({bool open, double fraction, int minutesLeft}) shiftProgress(Shift shift, DateTime istWall) {
+  if (!isShiftOpen(shift, istWall)) return (open: false, fraction: 0, minutesLeft: 0);
+  final now = istWall.hour * 60 + istWall.minute;
+  final start = _minutes(shift.start);
+  var end = _minutes(shift.end);
+  var elapsed = now - start;
+  if (end <= start) end += 1440; // wraps midnight
+  if (elapsed < 0) elapsed += 1440;
+  final total = end - start;
+  final f = (elapsed / total).clamp(0.0, 1.0);
+  return (open: true, fraction: f, minutesLeft: (total - elapsed).clamp(0, total));
+}
+
+/// "Good morning" / "Good afternoon" / "Good evening" / "Night shift" by IST hour.
+String greetingFor(DateTime istWall) {
+  final h = istWall.hour;
+  if (h >= 5 && h < 12) return 'Good morning';
+  if (h >= 12 && h < 17) return 'Good afternoon';
+  if (h >= 17 && h < 21) return 'Good evening';
+  return 'Stay safe tonight';
+}

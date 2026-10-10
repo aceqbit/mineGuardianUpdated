@@ -3,12 +3,14 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../app/app_images.dart';
 import '../../../app/responsive.dart';
 import '../../../app/theme/motion.dart';
 import '../../../app/theme/tokens.dart';
 import '../../../app/ui/app_scaffold.dart';
 import '../../../app/ui/connection_banner.dart';
 import '../../../app/ui/empty_state.dart';
+import '../../../app/ui/mg_hero_header.dart';
 import '../../../app/ui/pulse_dot.dart';
 import '../../../app/ui/skeleton.dart';
 import '../../../app/ui/toast.dart';
@@ -17,6 +19,7 @@ import '../../../contracts/routes.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/auth/session_bloc.dart';
 import '../../../core/socket/socket_service.dart';
+import '../../../core/time/ist.dart';
 import '../bloc/supervisor_feed_bloc.dart';
 import '../bloc/supervisor_feed_event.dart';
 import '../bloc/supervisor_feed_state.dart';
@@ -124,22 +127,20 @@ class _ViewState extends State<_View> {
           KpiData(label: 'Open hazards', value: '${s.openHazards}', icon: Icons.warning_amber, tone: s.openHazards > 0 ? c.danger : null),
           KpiData(label: 'Active SOS', value: '${s.sos.length}', icon: Icons.sos, tone: s.sos.isNotEmpty ? c.crisis : null),
         ]);
-        final header = Row(children: [
-          Expanded(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(s.zoneCode.isEmpty ? 'Your zone' : '${s.zoneCode} · ${s.zoneName}', style: t.headlineMedium, maxLines: 1, overflow: TextOverflow.ellipsis),
-              if (widget.shiftLabel.isNotEmpty) Text(widget.shiftLabel, style: t.bodySmall),
-            ]),
-          ),
-          StreamBuilder<bool>(
+        final header = MgHeroHeader(
+          eyebrow: greetingFor(nowIst()).toUpperCase(),
+          title: s.zoneCode.isEmpty ? 'Your zone' : '${s.zoneCode} · ${s.zoneName}',
+          subtitle: widget.shiftLabel.isEmpty ? null : widget.shiftLabel,
+          imageUrl: AppImages.supervisorFeed,
+          trailing: StreamBuilder<bool>(
             stream: socket.connection$,
             initialData: socket.isConnected,
             builder: (context, snap) {
               final up = snap.data == true;
-              return Row(mainAxisSize: MainAxisSize.min, children: [PulseDot(color: up ? c.success : c.slate400, pulsing: up), Text(up ? 'LIVE' : 'OFFLINE', style: t.labelMedium?.copyWith(color: up ? c.success : c.muted))]);
+              return Row(mainAxisSize: MainAxisSize.min, children: [PulseDot(color: up ? c.success : c.slate400, pulsing: up), const SizedBox(width: Space.xs), Text(up ? 'LIVE' : 'OFFLINE', style: t.labelMedium?.copyWith(color: Colors.white))]);
             },
           ),
-        ]);
+        );
 
         final feed = Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           FeedFilters(value: s.filter, onChanged: (f) => context.read<SupervisorFeedBloc>().add(FeedFilterChanged(f))),
