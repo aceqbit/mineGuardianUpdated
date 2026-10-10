@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'app/app.dart';
+import 'app/error_guard.dart';
 import 'core/api/api_client.dart';
 import 'core/auth/auth_repository.dart';
 import 'core/auth/session_bloc.dart';
@@ -16,7 +17,14 @@ import 'core/sync/reachability.dart';
 import 'core/sync/sync_engine.dart';
 import 'firebase_options.dart';
 
-Future<void> main() async {
+void main() {
+  ErrorGuard.run(() {
+    ErrorGuard.install();
+    _boot();
+  });
+}
+
+Future<void> _boot() async {
   WidgetsFlutterBinding.ensureInitialized();
   try {
     await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
