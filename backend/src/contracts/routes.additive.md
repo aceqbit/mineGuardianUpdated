@@ -2,3 +2,4 @@
 PUT /api/contacts/:id
 GET /api/broadcasts/history
 GET /api/broadcasts/replies
+PUT /api/zones/:id/evac-exit

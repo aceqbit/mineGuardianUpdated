@@ -20,6 +20,7 @@ class AdminHomeBloc extends Bloc<AdminHomeEvent, AdminHomeState> {
     on<AdminHomeRefreshRequested>((e, emit) => _load(emit));
     on<AdminSocketEvent>(_onSocket);
     on<SupervisorsAssigned>(_onAssign);
+    on<ZoneExitChosen>(_onExit);
     on<AdminNoticeShown>((e, emit) => emit(state.copyWith(clearNotice: true)));
 
     for (final ev in [SocketEvents.checkinNew, SocketEvents.complianceReviewed, SocketEvents.hazardNew, SocketEvents.hazardUpdated, SocketEvents.sosTriggered, SocketEvents.crisisActivated, SocketEvents.crisisResolved, SocketEvents.slaBreach]) {
@@ -36,7 +37,14 @@ class AdminHomeBloc extends Bloc<AdminHomeEvent, AdminHomeState> {
     try {
       final ov = await _repo.overview();
       final sups = state.supervisors.isEmpty ? await _repo.supervisors() : state.supervisors;
-      emit(state.copyWith(status: AdminStatus.ready, overview: ov, supervisors: sups));
+      List<ExitRef>? exits;
+      if (state.exits.isEmpty) {
+        try {
+          exits = await _repo.exits();
+        } catch (_) {// the picker just stays empty; the overview still loads
+        }
+      }
+      emit(state.copyWith(status: AdminStatus.ready, overview: ov, supervisors: sups, exits: exits));
     } on ApiException catch (e) {
       emit(state.copyWith(status: state.overview == null ? AdminStatus.failure : AdminStatus.ready, notice: e.message, noticeIsError: true));
     }
@@ -59,6 +67,16 @@ class AdminHomeBloc extends Bloc<AdminHomeEvent, AdminHomeState> {
       await _repo.setZoneSupervisors(e.zoneId, e.supervisorIds);
       final sups = await _repo.supervisors();
       emit(state.copyWith(supervisors: sups, notice: 'Supervisors updated'));
+      await _load(emit);
+    } on ApiException catch (ex) {
+      emit(state.copyWith(notice: ex.message, noticeIsError: true));
+    }
+  }
+
+  Future<void> _onExit(ZoneExitChosen e, Emitter<AdminHomeState> emit) async {
+    try {
+      await _repo.setZoneEvacExit(e.zoneId, e.exitId);
+      emit(state.copyWith(notice: e.exitId == null ? 'Emergency exit: nearest safe exit' : 'Emergency exit saved'));
       await _load(emit);
     } on ApiException catch (ex) {
       emit(state.copyWith(notice: ex.message, noticeIsError: true));

@@ -7,6 +7,7 @@ import { audit } from '../../core/audit.js';
 import { Zone } from '../../models/Zone.js';
 import { User } from '../../models/User.js';
 import { MineLayout } from '../../models/MineLayout.js';
+import { isValidEvacExit, layoutExitIds } from './evac.js';
 
 const router = Router();
 
@@ -33,6 +34,7 @@ router.get(
     res.json({
       ...publicZone(zone),
       requiredPpe: zone.requiredPpe,
+      evacExitId: zone.evacExitId ?? null,
       shiftWindows: zone.shiftWindows,
       supervisors: sups.map((s) => ({ id: s.id, fullName: s.fullName, phoneMasked: phoneMasked(s.phone?.e164) })),
     });
@@ -59,6 +61,27 @@ router.put(
     await User.updateMany({ _id: { $in: ids } }, { $set: { zoneId: zone._id } });
     await audit(req.user, 'ZONE_SUPERVISORS_SET', 'zone', zone._id, { supervisorIds: ids });
     res.json(zone.toJSON());
+  }),
+);
+
+router.put(
+  '/zones/:id/evac-exit',
+  authenticate(),
+  requireRole('admin'),
+  validate({ params: idParams, body: z.object({ exitId: z.string().min(1).max(64).nullable() }).strict() }),
+  asyncHandler(async (req, res) => {
+    const zone = await Zone.findById(req.params.id);
+    if (!zone) throw new AppError(404, 'NOT_FOUND', 'Zone not found');
+    const layout = await MineLayout.findOne().sort({ version: -1 });
+    if (!layout) throw new AppError(404, 'NOT_FOUND', 'No layout');
+    if (!isValidEvacExit(layout, req.body.exitId)) {
+      throw new AppError(400, 'INVALID_EXIT', 'That exit does not exist in the current mine layout', { validExitIds: layoutExitIds(layout) });
+    }
+    const before = zone.evacExitId ?? null;
+    zone.evacExitId = req.body.exitId;
+    await zone.save();
+    await audit(req.user, 'ZONE_EVAC_EXIT_SET', 'zone', zone._id, { from: before, to: req.body.exitId });
+    res.json({ zoneId: zone.id, evacExitId: zone.evacExitId ?? null });
   }),
 );
 

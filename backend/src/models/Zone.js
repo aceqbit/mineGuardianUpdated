@@ -16,6 +16,8 @@ const zoneSchema = new Schema(
     supervisorIds: [{ type: Schema.Types.ObjectId, ref: 'User' }],
     requiredPpe: [{ type: String, enum: PPE_KEY }],
     shiftWindows: [{ _id: false, shift: { type: String, enum: SHIFT }, start: String, end: String }],
+    // Layout exit id the admin designated as this zone's emergency exit (null = nearest safe exit, decided on the phone).
+    evacExitId: { type: String, default: null },
   },
   { timestamps: true, collection: 'zones' },
 );

@@ -16,13 +16,16 @@ class SupervisorRef extends Equatable {
 }
 
 class ZoneOverview extends Equatable {
-  const ZoneOverview({required this.id, required this.code, required this.name, required this.supervisors, required this.minersCount, required this.checkedInToday});
+  const ZoneOverview({required this.id, required this.code, required this.name, required this.supervisors, required this.minersCount, required this.checkedInToday, this.evacExitId});
   final String id;
   final String code;
   final String name;
   final List<SupervisorRef> supervisors;
   final int minersCount;
   final int checkedInToday;
+
+  /// Layout exit id the admin designated as this zone's emergency exit; null = nearest safe exit.
+  final String? evacExitId;
 
   factory ZoneOverview.fromJson(Map<String, dynamic> j) => ZoneOverview(
         id: j['id'].toString(),
@@ -31,10 +34,21 @@ class ZoneOverview extends Equatable {
         supervisors: ((j['supervisors'] as List?) ?? const []).map((e) => SupervisorRef.fromJson((e as Map).cast<String, dynamic>())).toList(),
         minersCount: (j['minersCount'] as num?)?.toInt() ?? 0,
         checkedInToday: (j['checkedInToday'] as num?)?.toInt() ?? 0,
+        evacExitId: j['evacExitId'] as String?,
       );
 
   @override
-  List<Object?> get props => [id, code, name, supervisors, minersCount, checkedInToday];
+  List<Object?> get props => [id, code, name, supervisors, minersCount, checkedInToday, evacExitId];
+}
+
+/// An exit from the mine layout, for the admin's emergency-exit picker.
+class ExitRef extends Equatable {
+  const ExitRef({required this.id, required this.name, required this.exitType});
+  final String id;
+  final String name;
+  final String exitType;
+  @override
+  List<Object?> get props => [id, name, exitType];
 }
 
 class ActiveCrisisRef extends Equatable {
@@ -86,4 +100,18 @@ class AdminRepository {
   Future<List<SupervisorRef>> supervisors() async => (await _api.getList('/api/admin/supervisors')).map((e) => SupervisorRef.fromJson((e as Map).cast<String, dynamic>())).toList();
 
   Future<void> setZoneSupervisors(String zoneId, List<String> ids) => _api.putJson('/api/zones/$zoneId/supervisors', body: {'supervisorIds': ids});
+
+  /// Exits from the latest layout (the same ids the server validates against).
+  Future<List<ExitRef>> exits() async {
+    final json = await _api.getJson('/api/layout');
+    final feats = ((json['geojson'] as Map?)?['features'] as List?) ?? const [];
+    return [
+      for (final f in feats)
+        if (((f as Map)['properties'] as Map?)?['kind'] == 'exit')
+          ExitRef(id: (f['properties'] as Map)['id'].toString(), name: (f['properties'] as Map)['name'] as String? ?? (f['properties'] as Map)['id'].toString(), exitType: (f['properties'] as Map)['exitType'] as String? ?? 'shaft'),
+    ];
+  }
+
+  /// null clears the choice (nearest safe exit).
+  Future<void> setZoneEvacExit(String zoneId, String? exitId) => _api.putJson('/api/zones/$zoneId/evac-exit', body: {'exitId': exitId});
 }

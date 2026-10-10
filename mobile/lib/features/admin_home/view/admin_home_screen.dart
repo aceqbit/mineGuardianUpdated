@@ -69,11 +69,13 @@ class _View extends StatelessWidget {
                     AdaptiveGrid(
                       minTileWidth: 280,
                       maxColumns: 3,
-                      fixedTileHeight: 430,
+                      fixedTileHeight: 520,
                       children: [
                         for (final z in o.zones)
                           ZoneCard(
                             zone: z,
+                            exits: s.exits,
+                            onExitChosen: (id) => context.read<AdminHomeBloc>().add(ZoneExitChosen(z.id, id)),
                             onManage: () async {
                               final bloc = context.read<AdminHomeBloc>();
                               final ids = await showAssignSupervisorsSheet(context, zone: z, all: s.supervisors);

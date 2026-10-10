@@ -53,7 +53,7 @@ router.get(
           CheckIn.distinct('workerId', { zoneId: z._id, createdAt: { $gte: dayStart } }),
         ]);
         return {
-          id: String(z._id), code: z.code, name: z.name,
+          id: String(z._id), code: z.code, name: z.name, evacExitId: z.evacExitId ?? null,
           supervisors: sups.map((s) => ({ id: String(s._id), fullName: s.fullName, phoneMasked: mask(s.phone?.e164) })),
           minersCount, checkedInToday: checkedIn.length,
         };

@@ -26,6 +26,7 @@ class SessionUser extends Equatable {
     this.zoneId,
     this.zoneCode,
     this.zoneName,
+    this.evacExitId,
     this.shift,
     this.zoneSupervisors = const [],
   });
@@ -38,6 +39,9 @@ class SessionUser extends Equatable {
   final String? zoneId;
   final String? zoneCode;
   final String? zoneName;
+
+  /// Layout exit id the admin designated as this zone's emergency exit (null = nearest safe exit).
+  final String? evacExitId;
   final Shift? shift;
   final List<ZoneSupervisor> zoneSupervisors;
 
@@ -59,6 +63,7 @@ class SessionUser extends Equatable {
       zoneId: (zone?['id'] ?? u['zoneId'])?.toString(),
       zoneCode: zone?['code'] as String?,
       zoneName: zone?['name'] as String?,
+      evacExitId: zone?['evacExitId'] as String?,
       shift: shiftWire == null ? null : Shift.fromWire(shiftWire),
       zoneSupervisors: sups,
     );
@@ -73,10 +78,11 @@ class SessionUser extends Equatable {
         zoneId: zoneId,
         zoneCode: zoneCode,
         zoneName: zoneName,
+        evacExitId: evacExitId,
         shift: shift,
         zoneSupervisors: zoneSupervisors ?? this.zoneSupervisors,
       );
 
   @override
-  List<Object?> get props => [id, role, fullName, employeeId, phoneE164, zoneId, zoneCode, zoneName, shift, zoneSupervisors];
+  List<Object?> get props => [id, role, fullName, employeeId, phoneE164, zoneId, zoneCode, zoneName, evacExitId, shift, zoneSupervisors];
 }

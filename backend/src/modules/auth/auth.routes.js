@@ -42,7 +42,7 @@ router.get(
     const out = { user: user.toPublic() };
     if (user.zoneId) {
       const zone = await Zone.findById(user.zoneId);
-      if (zone) out.zone = { id: zone.id, code: zone.code, name: zone.name };
+      if (zone) out.zone = { id: zone.id, code: zone.code, name: zone.name, evacExitId: zone.evacExitId ?? null };
     }
     if (user.role === 'miner' && user.zoneId) {
       const sups = await User.find({ role: 'supervisor', zoneId: user.zoneId, status: 'active' }).select('fullName phone.e164');

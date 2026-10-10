@@ -33,3 +33,12 @@ class SupervisorsAssigned extends AdminHomeEvent {
 class AdminNoticeShown extends AdminHomeEvent {
   const AdminNoticeShown();
 }
+
+/// Admin picked (or cleared, with null) a zone's emergency exit.
+class ZoneExitChosen extends AdminHomeEvent {
+  const ZoneExitChosen(this.zoneId, this.exitId);
+  final String zoneId;
+  final String? exitId;
+  @override
+  List<Object?> get props => [zoneId, exitId];
+}

@@ -9,9 +9,11 @@ import '../../../app/ui/skeleton.dart';
 import '../data/admin_repository.dart';
 
 class ZoneCard extends StatelessWidget {
-  const ZoneCard({super.key, required this.zone, required this.onManage});
+  const ZoneCard({super.key, required this.zone, required this.onManage, this.exits = const [], this.onExitChosen});
   final ZoneOverview zone;
   final VoidCallback onManage;
+  final List<ExitRef> exits;
+  final ValueChanged<String?>? onExitChosen;
 
   @override
   Widget build(BuildContext context) {
@@ -45,6 +47,20 @@ class ZoneCard extends StatelessWidget {
             Text('Checked in today ${zone.checkedInToday}/${zone.minersCount}', style: t.labelMedium),
             const SizedBox(height: Space.xs),
             ClipRRect(borderRadius: BorderRadius.circular(4), child: LinearProgressIndicator(value: frac, minHeight: 6, backgroundColor: c.border, color: c.success)),
+            if (exits.isNotEmpty && onExitChosen != null) ...[
+              const SizedBox(height: Space.md),
+              Text('Emergency exit', style: t.labelMedium),
+              const SizedBox(height: Space.xs),
+              DropdownButton<String?>(
+                isExpanded: true,
+                value: exits.any((e) => e.id == zone.evacExitId) ? zone.evacExitId : null,
+                items: [
+                  const DropdownMenuItem<String?>(value: null, child: Text('Nearest safe exit (automatic)', overflow: TextOverflow.ellipsis)),
+                  for (final e in exits) DropdownMenuItem<String?>(value: e.id, child: Text(e.name, overflow: TextOverflow.ellipsis)),
+                ],
+                onChanged: onExitChosen,
+              ),
+            ],
             const SizedBox(height: Space.md),
             MgButton(label: 'Manage supervisors', kind: MgButtonKind.secondary, icon: Icons.manage_accounts, expand: true, onPressed: onManage),
           ]),
