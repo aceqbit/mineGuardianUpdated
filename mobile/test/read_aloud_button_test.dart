@@ -12,6 +12,12 @@ class _FakeSpeech implements SpeechService {
 
   @override
   ValueListenable<SpeechState> get state => _s;
+  @override
+  ValueListenable<SpeechPrefs> get prefs => ValueNotifier(const SpeechPrefs());
+  @override
+  Future<List<SpeechVoice>> voices() async => const [];
+  @override
+  Future<void> configure(SpeechPrefs prefs) async {}
 
   @override
   Future<void> speak(List<String> segments, {required String owner}) async {

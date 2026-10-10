@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/speech/speech_service.dart';
 import '../theme/tokens.dart';
+import 'voice_settings_sheet.dart';
 
 /// Play / stop control that reads [segments] aloud. Stops its own speech when removed from the tree.
 /// Pass [service] only in tests; otherwise the shared [SpeechService.instance] is used.
@@ -45,15 +46,20 @@ class _ReadAloudButtonState extends State<ReadAloudButton> {
         if (widget.label == null) {
           return IconButton(tooltip: tip, icon: Icon(icon, color: color), onPressed: () => _toggle(mine));
         }
-        return Semantics(
-          button: true,
-          label: tip,
-          child: ActionChip(
-            avatar: Icon(icon, size: 18, color: color),
-            label: Text(mine ? 'Stop' : widget.label!),
-            onPressed: () => _toggle(mine),
+        return Row(mainAxisSize: MainAxisSize.min, children: [
+          Flexible(
+            child: Semantics(
+              button: true,
+              label: tip,
+              child: ActionChip(
+                avatar: Icon(icon, size: 18, color: color),
+                label: Text(mine ? 'Stop' : widget.label!, maxLines: 1, overflow: TextOverflow.ellipsis),
+                onPressed: () => _toggle(mine),
+              ),
+            ),
           ),
-        );
+          IconButton(tooltip: 'Voice and speed', icon: Icon(Icons.tune, size: 20, color: widget.onDark ? Colors.white : c.muted), onPressed: () => showVoiceSettings(context, service: widget.service)),
+        ]);
       },
     );
   }

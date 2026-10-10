@@ -9,6 +9,7 @@ import 'core/auth/session_bloc.dart';
 import 'core/db/cache_repository.dart';
 import 'core/db/local_db.dart';
 import 'core/socket/socket_service.dart';
+import 'core/speech/speech_prefs_store.dart';
 import 'core/sync/api_outbox_sender.dart';
 import 'core/sync/outbox_queue.dart';
 import 'core/sync/reachability.dart';
@@ -31,6 +32,7 @@ Future<void> main() async {
   final db = await LocalDb.open();
   final engine = SyncEngine(outbox: db.outbox, sender: ApiOutboxSender(api: api, socket: socket), reachability: ConnectivityReachability(api: api), onRemoved: OutboxQueue.deleteFile);
   final queue = OutboxQueue(outbox: db.outbox, engine: engine);
+  await SpeechPrefsStore.restore(db.cache); // saved voice and speed for read-aloud
 
   runApp(MultiRepositoryProvider(
     providers: [
