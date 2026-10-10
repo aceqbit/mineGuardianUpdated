@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../config.dart';
@@ -77,8 +78,15 @@ class SignupBloc extends Bloc<SignupEvent, SignupState> {
       await _sendCode(e.data.e164, emit);
     } on SignupFailure catch (f) {
       emit(state.copyWith(status: SignupStatus.failure, errorMessage: f.message, errorStep: f.step, step: f.step, alreadyRegistered: f.alreadyRegistered));
-    } catch (_) {
-      emit(state.copyWith(status: SignupStatus.failure, errorMessage: 'Something went wrong. Please try again', errorStep: 2));
+    } catch (e) {
+      // Anything unexpected after the account may have been created: never leave an orphan Firebase user behind.
+      debugPrint('signup failed: $e');
+      try {
+        await _repo.discardAccount();
+      } catch (_) {}
+      _session = null;
+      _data = null;
+      emit(state.copyWith(status: SignupStatus.failure, errorMessage: 'Something went wrong (${e.runtimeType}). Please try again', errorStep: 0, step: 0, clearOtp: true));
     }
   }
 

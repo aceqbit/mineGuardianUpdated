@@ -127,11 +127,18 @@ AuthFailure friendlyOtpError(FirebaseAuthException e) {
       return AuthFailure('PHONE_MISMATCH', 'This number does not match your account');
     case 'user-disabled':
       return AuthFailure('ACCOUNT_INACTIVE', 'This account has been disabled. Contact your supervisor');
+    case 'billing-not-enabled':
+      return AuthFailure('OTP_UNAVAILABLE', 'SMS needs the Firebase project to be on the Blaze plan (billing-not-enabled)');
+    case 'captcha-check-failed':
+    case 'invalid-app-credential':
+    case 'web-internal-error':
+    case 'internal-error':
+      return AuthFailure('OTP_UNAVAILABLE', 'Could not verify this browser or app for SMS (${e.code}). Reload and try again');
     case 'operation-not-allowed':
     case 'app-not-authorized':
     case 'missing-client-identifier':
       return AuthFailure('OTP_UNAVAILABLE', 'SMS verification is not available right now. Please contact your admin');
     default:
-      return AuthFailure('UNKNOWN', 'Something went wrong. Please try again');
+      return AuthFailure('UNKNOWN', 'Something went wrong (${e.code}). Please try again');
   }
 }

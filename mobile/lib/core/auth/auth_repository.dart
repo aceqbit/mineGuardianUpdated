@@ -66,7 +66,7 @@ class AuthRepository {
       case 'user-disabled':
         return AuthFailure('ACCOUNT_INACTIVE', 'This account has been disabled. Contact your supervisor');
       default:
-        return AuthFailure('UNKNOWN', 'Something went wrong. Please try again');
+        return AuthFailure('UNKNOWN', 'Something went wrong (${e.code}). Please try again');
     }
   }
 }
