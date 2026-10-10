@@ -41,6 +41,11 @@ class SosBloc extends Bloc<SosEvent, SosState> {
     on<SosRouteAssigned>((e, emit) => emit(state.copyWith(assignedRank: e.rank)));
     on<SosGpsTick>(_onGpsTick);
     on<SosCancelConfirmed>(_onCancel);
+    on<SosRouteSelected>((e, emit) {
+      emit(state.copyWith(selectedExitId: e.exitId));
+      _rebuildGraph(emit);
+    });
+    on<SosRefreshTick>(_onRefresh);
     on<SosRetrySend>((e, emit) => _send(emit));
     on<SosLayoutLoaded>((e, emit) {
       emit(state.copyWith(layout: e.layout));
@@ -61,6 +66,8 @@ class SosBloc extends Bloc<SosEvent, SosState> {
   final DateTime triggeredAt = DateTime.now().toUtc();
   final _subs = <StreamSubscription<dynamic>>[];
   Timer? _gps;
+  Timer? _refresh;
+  GeoPoint? _lastRouted;
   EvacGraph? _graph;
 
   Future<void> _onOpened(SosOpened e, Emitter<SosState> emit) async {
@@ -89,6 +96,11 @@ class SosBloc extends Bloc<SosEvent, SosState> {
       if (f != null && !isClosed) add(SosLocationChanged(f));
     });
 
+    // Pick up newly cached hazards and layout changes (blocked tunnels) while the screen is open.
+    _refresh = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (!isClosed) add(const SosRefreshTick());
+    });
+
     if (!e.evacOnly) {
       await _send(emit);
       _gps = Timer.periodic(const Duration(seconds: 10), (_) {
@@ -99,7 +111,9 @@ class SosBloc extends Bloc<SosEvent, SosState> {
 
   void _onLocation(SosLocationChanged e, Emitter<SosState> emit) {
     emit(state.copyWith(fix: e.fix, positionUnknown: false));
-    _rebuildGraph(emit);
+    // Reroute on the first fix and whenever the worker has moved more than 10 m since the last computation.
+    final last = _lastRouted;
+    if (last == null || state.layout == null || haversineM(last, GeoPoint(e.fix.lat, e.fix.lng)) > 10) _rebuildGraph(emit);
   }
 
   /// Offline route from the cached layout, recomputed whenever position / layout / hazards change.
@@ -108,8 +122,29 @@ class SosBloc extends Bloc<SosEvent, SosState> {
     if (layout == null) return;
     _graph = EvacGraph.build(layout, hazards: state.hazards);
     final fix = state.fix;
-    final route = fix != null ? _graph!.routeFrom(GeoPoint(fix.lat, fix.lng)) : _graph!.routeFromZone(zoneCode);
-    emit(state.copyWith(offlineRoute: route, clearOfflineRoute: route == null, positionUnknown: fix == null));
+    final here = fix != null ? GeoPoint(fix.lat, fix.lng) : _zoneCentre(layout);
+    final alts = here == null ? const <EvacRoute>[] : _graph!.alternativesFrom(here);
+    final picked = alts.where((r) => r.exit.id == state.selectedExitId).firstOrNull ?? alts.firstOrNull;
+    _lastRouted = here;
+    emit(state.copyWith(alternatives: alts, offlineRoute: picked, clearOfflineRoute: picked == null, selectedExitId: picked?.exit.id, positionUnknown: fix == null));
+  }
+
+  GeoPoint? _zoneCentre(MineLayoutData layout) {
+    final zone = layout.zones.where((z) => z.code == zoneCode).firstOrNull;
+    if (zone == null || zone.ring.isEmpty) return null;
+    final ring = zone.ring;
+    return GeoPoint(ring.map((p) => p.lat).reduce((a, b) => a + b) / ring.length, ring.map((p) => p.lng).reduce((a, b) => a + b) / ring.length);
+  }
+
+  Future<void> _onRefresh(SosRefreshTick e, Emitter<SosState> emit) async {
+    try {
+    final hz = (await _layoutRepo.cachedOpenHazards()).map(CachedHazard.fromJson).whereType<CachedHazard>().toList();
+    if (hz.length != state.hazards.length) emit(state.copyWith(hazards: hz));
+    final fresh = await _layoutRepo.refresh();
+    if (fresh != null && fresh.version != state.layout?.version) emit(state.copyWith(layout: fresh));
+    } catch (_) {// offline: keep what we have
+    }
+    _rebuildGraph(emit);
   }
 
   Future<void> _send(Emitter<SosState> emit) async {
@@ -189,6 +224,7 @@ class SosBloc extends Bloc<SosEvent, SosState> {
   @override
   Future<void> close() async {
     _gps?.cancel();
+    _refresh?.cancel();
     for (final s in _subs) {
       await s.cancel();
     }

@@ -62,3 +62,16 @@ class SosLayoutLoaded extends SosEvent {
   @override
   List<Object?> get props => [layout.version];
 }
+
+/// The worker picked one of the alternative routes (by exit id).
+class SosRouteSelected extends SosEvent {
+  const SosRouteSelected(this.exitId);
+  final String exitId;
+  @override
+  List<Object?> get props => [exitId];
+}
+
+/// Periodic re-read of cached hazards and the layout version.
+class SosRefreshTick extends SosEvent {
+  const SosRefreshTick();
+}

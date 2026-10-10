@@ -56,4 +56,35 @@ void main() {
     final r = EvacGraph.build(layout).routeFrom(j('J5'))!;
     expect((r.etaSec - r.distanceM / 1.1).abs(), lessThan(0.001));
   });
+
+  test('alternativeRoutes: distinct routes, best first, overlap within limit, all reach an exit', () {
+    final g = EvacGraph.build(layout);
+    final alts = g.alternativeRoutes(g.nearestJunction(j('J5'))!, k: 3);
+    expect(alts, isNotEmpty);
+    expect(alts.length, lessThanOrEqualTo(3));
+    for (var i = 1; i < alts.length; i++) {
+      expect(alts[i].distanceM, greaterThanOrEqualTo(alts[i - 1].distanceM));
+    }
+    for (final a in alts) {
+      expect(layout.exits.map((e) => e.node), contains(a.nodes.last));
+    }
+    for (var i = 0; i < alts.length; i++) {
+      for (var k = 0; k < alts.length; k++) {
+        if (i != k) expect(EvacGraph.overlap(alts[i], alts[k]), lessThanOrEqualTo(0.7 + 1e-9));
+      }
+    }
+    expect(alts.first.distanceM, closeTo(g.routeFrom(j('J5'))!.distanceM, 0.001));
+  });
+
+  test('alternativeRoutes skips blocked tunnels and distanceToRouteM measures off-route drift', () {
+    final base = EvacGraph.build(layout).routeFrom(j('J5'))!;
+    final blockedId = base.tunnelIds.first;
+    final alts = EvacGraph.build(layout, extraBlocked: {blockedId}).alternativeRoutes(base.nodes.first);
+    for (final a in alts) {
+      expect(a.tunnelIds, isNot(contains(blockedId)));
+    }
+    expect(EvacGraph.distanceToRouteM(base.points.first, base), closeTo(0, 0.5));
+    final off = GeoPoint(base.points.first.lat + 0.001, base.points.first.lng);
+    expect(EvacGraph.distanceToRouteM(off, base), greaterThan(30));
+  });
 }

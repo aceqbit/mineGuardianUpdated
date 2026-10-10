@@ -26,7 +26,7 @@ import '../bloc/sos_bloc.dart';
 import '../bloc/sos_event.dart';
 import '../bloc/sos_state.dart';
 import '../data/sos_repository.dart';
-import '../widgets/evac_map_view.dart';
+import '../widgets/sos_map_panel.dart';
 import '../widgets/first_aid_sheet.dart';
 import '../widgets/hold_to_confirm.dart';
 
@@ -205,7 +205,7 @@ class _SosViewState extends State<_SosView> {
       listenWhen: (a, b) => !a.cancelled && b.cancelled,
       listener: (context, s) => context.go(Routes.worker),
       builder: (context, s) {
-        final map = SizedBox(height: context.isExpanded ? double.infinity : 380, child: EvacMapView(state: s));
+        final map = SizedBox(height: context.isExpanded ? double.infinity : 380, child: SosMapPanel(state: s));
         final body = context.isExpanded
             ? Padding(
                 padding: const EdgeInsets.all(Space.lg),

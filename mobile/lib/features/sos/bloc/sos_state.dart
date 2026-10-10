@@ -4,6 +4,12 @@ import '../../../core/location/location_service.dart';
 import '../../../core/models/mine_layout.dart';
 import '../data/evac_graph.dart';
 
+/// Distance from the route beyond which the worker is told they are off route.
+const double offRouteThresholdM = 30;
+
+/// Within this many metres of the exit point the worker counts as arrived.
+const double arrivedRadiusM = 25;
+
 enum SosSendStatus { idle, sending, sent, savedOffline, failed }
 
 /// One LineString feature of crisis:routes for this worker.
@@ -34,6 +40,8 @@ class SosState extends Equatable {
     this.cancelled = false,
     this.hazards = const [],
     this.sosId,
+    this.alternatives = const [],
+    this.selectedExitId,
   });
 
   final bool evacOnly;
@@ -50,6 +58,28 @@ class SosState extends Equatable {
   final bool cancelled;
   final List<CachedHazard> hazards;
   final String? sosId;
+
+  /// Up to 3 on-device routes, best first; [offlineRoute] is the selected one.
+  final List<EvacRoute> alternatives;
+  final String? selectedExitId;
+
+  /// Metres from the current fix to the selected on-device route (null when unknown).
+  double? get offRouteM {
+    final f = fix, r = offlineRoute;
+    if (f == null || r == null) return null;
+    return EvacGraph.distanceToRouteM(GeoPoint(f.lat, f.lng), r);
+  }
+
+  bool get offRoute => (offRouteM ?? 0) > offRouteThresholdM;
+
+  /// Metres to the target exit (straight line), null without a fix or route.
+  double? get distanceToTargetM {
+    final f = fix, r = offlineRoute;
+    if (f == null || r == null) return null;
+    return haversineM(GeoPoint(f.lat, f.lng), r.exit.point);
+  }
+
+  bool get arrived => (distanceToTargetM ?? double.infinity) <= arrivedRadiusM;
 
   /// The route the control room wants this worker to take (assigned rank, else recommended).
   ControlRoute? get activeControlRoute {
@@ -76,6 +106,8 @@ class SosState extends Equatable {
     bool? cancelled,
     List<CachedHazard>? hazards,
     String? sosId,
+    List<EvacRoute>? alternatives,
+    String? selectedExitId,
   }) =>
       SosState(
         evacOnly: evacOnly,
@@ -92,6 +124,8 @@ class SosState extends Equatable {
         cancelled: cancelled ?? this.cancelled,
         hazards: hazards ?? this.hazards,
         sosId: sosId ?? this.sosId,
+        alternatives: alternatives ?? this.alternatives,
+        selectedExitId: selectedExitId ?? this.selectedExitId,
       );
 
   SosState withEvacOnly(bool v) => SosState(
@@ -109,8 +143,10 @@ class SosState extends Equatable {
         cancelled: cancelled,
         hazards: hazards,
         sosId: sosId,
+        alternatives: alternatives,
+        selectedExitId: selectedExitId,
       );
 
   @override
-  List<Object?> get props => [evacOnly, status, sentAt, retries, layout?.version, zoneCode, fix?.lat, fix?.lng, offlineRoute?.distanceM, positionUnknown, controlRoutes, assignedRank, cancelled, hazards.length, sosId];
+  List<Object?> get props => [evacOnly, status, sentAt, retries, layout?.version, zoneCode, fix?.lat, fix?.lng, offlineRoute?.distanceM, positionUnknown, controlRoutes, assignedRank, cancelled, hazards.length, sosId, alternatives.map((r) => r.exit.id).toList(), selectedExitId];
 }

@@ -35,3 +35,6 @@
 | I.1 | Contract check (JS) + route check (Dart) | PASS offline part (29/29); live route probes MANUAL |
 | I.3 | Demo runbook | Written (docs/DEMO_RUNBOOK.md) |
 | I.4 | Final audit | Written (docs/FINAL_AUDIT.md) with the manual list |
+| W3 | Read-aloud (flutter_tts, approved pubspec exception): first aid, evacuation protocol, emergency broadcasts | PASS (analyze clean, widget test); voice quality on a real device = MANUAL |
+| W4 | Live camera capture on web too (kIsWeb gates removed), pinch zoom, camera failure falls back to gallery | PASS (analyze clean, 121 tests); real-camera check on phone = MANUAL |
+| W2 | Live GPS map (flutter_map + OSM tiles, offline-safe), explicit target pin, 3 on-device alternative routes, auto re-plan on 10 m movement, off-route and arrived states | PASS (130 Flutter tests incl. alternativeRoutes + 7 widget tests at 360/768/1280, light/dark); note: hazard:new socket events do not reach miners, so re-planning uses cached hazards + layout refresh every 30 s; real GPS walk = MANUAL |
