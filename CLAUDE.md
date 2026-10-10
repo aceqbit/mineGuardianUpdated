@@ -10,6 +10,7 @@ Built in 33 ordered steps (S0.1–S0.4, P1.1–P1.12, P2.0–P2.13, I.1–I.4). 
 
 ---
 
+
 ## 0. First things every session
 
 1. Read `docs/PROGRESS.md` (last rows) to see which step is done. Do not redo finished steps.
