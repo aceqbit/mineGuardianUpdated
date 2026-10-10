@@ -11,6 +11,7 @@ import '../../../core/socket/socket_service.dart';
 import '../../../core/sync/outbox_queue.dart';
 import '../../../core/sync/sync_engine.dart';
 import '../data/evac_graph.dart';
+import '../data/nav_logic.dart';
 import '../data/sos_repository.dart';
 import 'sos_event.dart';
 import 'sos_state.dart';
@@ -27,6 +28,7 @@ class SosBloc extends Bloc<SosEvent, SosState> {
     required LayoutRepository layout,
     required this.userId,
     required this.zoneCode,
+    this.designatedExitId,
   })  : _repo = repo,
         _location = location,
         _socket = socket,
@@ -42,9 +44,10 @@ class SosBloc extends Bloc<SosEvent, SosState> {
     on<SosGpsTick>(_onGpsTick);
     on<SosCancelConfirmed>(_onCancel);
     on<SosRouteSelected>((e, emit) {
-      emit(state.copyWith(selectedExitId: e.exitId));
+      emit(state.copyWith(workerPickedExitId: e.exitId));
       _rebuildGraph(emit);
     });
+    on<SosSimulateToggled>(_onSimulate);
     on<SosRefreshTick>(_onRefresh);
     on<SosRetrySend>((e, emit) => _send(emit));
     on<SosLayoutLoaded>((e, emit) {
@@ -62,11 +65,15 @@ class SosBloc extends Bloc<SosEvent, SosState> {
   final String userId;
   final String zoneCode;
 
+  /// Layout exit id the admin designated for this worker's zone (null = nearest safe exit).
+  final String? designatedExitId;
+
   final String clientId = SosRepository.newClientId();
   final DateTime triggeredAt = DateTime.now().toUtc();
   final _subs = <StreamSubscription<dynamic>>[];
   Timer? _gps;
   Timer? _refresh;
+  StreamSubscription<LocationFix>? _sim;
   GeoPoint? _lastRouted;
   EvacGraph? _graph;
 
@@ -110,6 +117,7 @@ class SosBloc extends Bloc<SosEvent, SosState> {
   }
 
   void _onLocation(SosLocationChanged e, Emitter<SosState> emit) {
+    if (_sim != null && !e.simulated) return; // real GPS is paused while the simulator walks
     emit(state.copyWith(fix: e.fix, positionUnknown: false));
     // Reroute on the first fix and whenever the worker has moved more than 10 m since the last computation.
     final last = _lastRouted;
@@ -123,10 +131,10 @@ class SosBloc extends Bloc<SosEvent, SosState> {
     _graph = EvacGraph.build(layout, hazards: state.hazards);
     final fix = state.fix;
     final here = fix != null ? GeoPoint(fix.lat, fix.lng) : _zoneCentre(layout);
-    final alts = here == null ? const <EvacRoute>[] : _graph!.alternativesFrom(here);
-    final picked = alts.where((r) => r.exit.id == state.selectedExitId).firstOrNull ?? alts.firstOrNull;
+    final choice = chooseTarget(graph: _graph!, from: here, designatedExitId: designatedExitId, workerPickedExitId: state.workerPickedExitId);
+    final picked = choice.route;
     _lastRouted = here;
-    emit(state.copyWith(alternatives: alts, offlineRoute: picked, clearOfflineRoute: picked == null, selectedExitId: picked?.exit.id, positionUnknown: fix == null));
+    emit(state.copyWith(alternatives: choice.alternatives, offlineRoute: picked, clearOfflineRoute: picked == null, selectedExitId: picked?.exit.id, targetReason: choice.reason, positionUnknown: fix == null));
   }
 
   GeoPoint? _zoneCentre(MineLayoutData layout) {
@@ -134,6 +142,25 @@ class SosBloc extends Bloc<SosEvent, SosState> {
     if (zone == null || zone.ring.isEmpty) return null;
     final ring = zone.ring;
     return GeoPoint(ring.map((p) => p.lat).reduce((a, b) => a + b) / ring.length, ring.map((p) => p.lng).reduce((a, b) => a + b) / ring.length);
+  }
+
+  Future<void> _onSimulate(SosSimulateToggled e, Emitter<SosState> emit) async {
+    if (!state.evacOnly) return; // never feed made-up positions into a real SOS
+    if (_sim != null) {
+      await _sim!.cancel();
+      _sim = null;
+      emit(state.copyWith(simulating: false));
+      return;
+    }
+    final route = state.offlineRoute;
+    if (route == null) return;
+    emit(state.copyWith(simulating: true));
+    _sim = simulateWalk(route).listen(
+      (f) => add(SosLocationChanged(f, simulated: true)),
+      onDone: () {
+        if (!isClosed) add(const SosSimulateToggled()); // walk finished: toggles off (the subscription is still set)
+      },
+    );
   }
 
   Future<void> _onRefresh(SosRefreshTick e, Emitter<SosState> emit) async {
@@ -225,6 +252,7 @@ class SosBloc extends Bloc<SosEvent, SosState> {
   Future<void> close() async {
     _gps?.cancel();
     _refresh?.cancel();
+    await _sim?.cancel();
     for (final s in _subs) {
       await s.cancel();
     }

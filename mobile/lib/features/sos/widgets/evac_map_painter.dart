@@ -149,9 +149,9 @@ class EvacMapPainter extends CustomPainter {
     if (f != null) {
       final o = px(GeoPoint(f.lat, f.lng));
       final accR = (f.accuracyM * scale).clamp(6.0, 120.0);
-      canvas.drawCircle(o, accR, Paint()..color = const Color(0xFF2563EB).withValues(alpha: 0.15));
-      canvas.drawCircle(o, 9 + 5 * pulse, Paint()..color = const Color(0xFF2563EB).withValues(alpha: 0.25 * (1 - pulse)));
-      canvas.drawCircle(o, 7, Paint()..color = const Color(0xFF2563EB));
+      canvas.drawCircle(o, accR, Paint()..color = c.positionBlue.withValues(alpha: 0.15));
+      canvas.drawCircle(o, 9 + 5 * pulse, Paint()..color = c.positionBlue.withValues(alpha: 0.25 * (1 - pulse)));
+      canvas.drawCircle(o, 7, Paint()..color = c.positionBlue);
       canvas.drawCircle(o, 7, Paint()..color = Colors.white..style = PaintingStyle.stroke..strokeWidth = 2.5);
     }
     // north arrow

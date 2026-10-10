@@ -233,6 +233,14 @@ class EvacGraph {
     return n == null ? const [] : alternativeRoutes(n, k: k);
   }
 
+  /// Shortest route from [start] to one named exit, or null when it is blocked / unreachable.
+  EvacRoute? routeToExit(String start, String exitId) {
+    final ex = layout.exits.where((e) => e.id == exitId).firstOrNull;
+    if (ex == null) return null;
+    final s = _search(start, const {});
+    return s.dist.containsKey(ex.node) ? _routeTo(ex, start, s) : null;
+  }
+
   /// Route from a GPS position (snapped to the nearest junction).
   EvacRoute? routeFrom(GeoPoint position) {
     final n = nearestJunction(position);

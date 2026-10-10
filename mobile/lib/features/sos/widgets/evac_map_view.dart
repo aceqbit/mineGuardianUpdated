@@ -127,7 +127,7 @@ class _Legend extends StatelessWidget {
       padding: const EdgeInsets.all(Space.sm),
       decoration: BoxDecoration(color: colors.surface.withValues(alpha: 0.92), borderRadius: BorderRadius.circular(Radii.sm), border: Border.all(color: colors.border)),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-        row(const Color(0xFF2563EB), 'You'),
+        row(colors.positionBlue, 'You'),
         row(colors.success, 'Exit'),
         row(colors.info, 'Refuge', square: true),
         row(colors.amber500, 'Your route', line: true),

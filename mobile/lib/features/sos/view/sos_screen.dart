@@ -52,6 +52,7 @@ class SosScreen extends StatelessWidget {
         layout: LayoutRepository(api: ctx.read<ApiClient>(), cache: ctx.read<CacheRepository>()),
         userId: user.id,
         zoneCode: user.zoneCode ?? '',
+        designatedExitId: user.evacExitId,
       )..add(SosOpened(evacOnly: evacOnly)),
       child: _SosView(user: user, evacOnly: evacOnly),
     );

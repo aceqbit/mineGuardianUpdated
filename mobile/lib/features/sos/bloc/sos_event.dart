@@ -17,10 +17,13 @@ class SosOpened extends SosEvent {
 }
 
 class SosLocationChanged extends SosEvent {
-  const SosLocationChanged(this.fix);
+  const SosLocationChanged(this.fix, {this.simulated = false});
   final LocationFix fix;
+
+  /// True for positions from the demo walk simulator.
+  final bool simulated;
   @override
-  List<Object?> get props => [fix.lat, fix.lng, fix.accuracyM];
+  List<Object?> get props => [fix.lat, fix.lng, fix.accuracyM, simulated];
 }
 
 class SosQueuedResult extends SosEvent {
@@ -74,4 +77,9 @@ class SosRouteSelected extends SosEvent {
 /// Periodic re-read of cached hazards and the layout version.
 class SosRefreshTick extends SosEvent {
   const SosRefreshTick();
+}
+
+/// Start / stop the demo walk simulator (evacuation view only; never during a real SOS).
+class SosSimulateToggled extends SosEvent {
+  const SosSimulateToggled();
 }

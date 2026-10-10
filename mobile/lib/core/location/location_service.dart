@@ -3,11 +3,15 @@ import 'dart:async';
 import 'package:geolocator/geolocator.dart';
 
 class LocationFix {
-  const LocationFix({required this.lat, required this.lng, required this.accuracyM, required this.ts, this.isFallback = false});
+  const LocationFix({required this.lat, required this.lng, required this.accuracyM, required this.ts, this.isFallback = false, this.headingDeg, this.speedMps});
   final double lat;
   final double lng;
   final double accuracyM;
   final DateTime ts;
+
+  /// Direction of travel in degrees from north (null when stationary or unknown).
+  final double? headingDeg;
+  final double? speedMps;
 
   /// True when the fix came from the last known position rather than a fresh reading.
   final bool isFallback;
@@ -55,5 +59,13 @@ class LocationService {
   /// Continuous stream (used while an SOS is active).
   Stream<LocationFix> stream({int distanceFilter = 5}) => Geolocator.getPositionStream(locationSettings: LocationSettings(accuracy: LocationAccuracy.high, distanceFilter: distanceFilter)).map((p) => _fix(p, false));
 
-  LocationFix _fix(Position p, bool fallback) => LocationFix(lat: p.latitude, lng: p.longitude, accuracyM: p.accuracy, ts: p.timestamp.toUtc(), isFallback: fallback);
+  LocationFix _fix(Position p, bool fallback) => LocationFix(
+        lat: p.latitude,
+        lng: p.longitude,
+        accuracyM: p.accuracy,
+        ts: p.timestamp.toUtc(),
+        isFallback: fallback,
+        headingDeg: !fallback && p.heading >= 0 && p.speed > 0.5 ? p.heading : null,
+        speedMps: fallback ? null : p.speed,
+      );
 }

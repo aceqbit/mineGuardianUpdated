@@ -3,6 +3,7 @@ import 'package:equatable/equatable.dart';
 import '../../../core/location/location_service.dart';
 import '../../../core/models/mine_layout.dart';
 import '../data/evac_graph.dart';
+import '../data/nav_logic.dart';
 
 /// Distance from the route beyond which the worker is told they are off route.
 const double offRouteThresholdM = 30;
@@ -42,6 +43,9 @@ class SosState extends Equatable {
     this.sosId,
     this.alternatives = const [],
     this.selectedExitId,
+    this.targetReason = TargetReason.nearest,
+    this.workerPickedExitId,
+    this.simulating = false,
   });
 
   final bool evacOnly;
@@ -62,6 +66,15 @@ class SosState extends Equatable {
   /// Up to 3 on-device routes, best first; [offlineRoute] is the selected one.
   final List<EvacRoute> alternatives;
   final String? selectedExitId;
+
+  /// Why [offlineRoute] was chosen (designated exit, nearest, worker choice...).
+  final TargetReason targetReason;
+
+  /// Set only when the worker taps a route chip; overrides the designated exit.
+  final String? workerPickedExitId;
+
+  /// True while the demo walk simulator is feeding positions (evacuation view only).
+  final bool simulating;
 
   /// Metres from the current fix to the selected on-device route (null when unknown).
   double? get offRouteM {
@@ -108,6 +121,9 @@ class SosState extends Equatable {
     String? sosId,
     List<EvacRoute>? alternatives,
     String? selectedExitId,
+    TargetReason? targetReason,
+    String? workerPickedExitId,
+    bool? simulating,
   }) =>
       SosState(
         evacOnly: evacOnly,
@@ -126,6 +142,9 @@ class SosState extends Equatable {
         sosId: sosId ?? this.sosId,
         alternatives: alternatives ?? this.alternatives,
         selectedExitId: selectedExitId ?? this.selectedExitId,
+        targetReason: targetReason ?? this.targetReason,
+        workerPickedExitId: workerPickedExitId ?? this.workerPickedExitId,
+        simulating: simulating ?? this.simulating,
       );
 
   SosState withEvacOnly(bool v) => SosState(
@@ -145,8 +164,11 @@ class SosState extends Equatable {
         sosId: sosId,
         alternatives: alternatives,
         selectedExitId: selectedExitId,
+        targetReason: targetReason,
+        workerPickedExitId: workerPickedExitId,
+        simulating: simulating,
       );
 
   @override
-  List<Object?> get props => [evacOnly, status, sentAt, retries, layout?.version, zoneCode, fix?.lat, fix?.lng, offlineRoute?.distanceM, positionUnknown, controlRoutes, assignedRank, cancelled, hazards.length, sosId, alternatives.map((r) => r.exit.id).toList(), selectedExitId];
+  List<Object?> get props => [evacOnly, status, sentAt, retries, layout?.version, zoneCode, fix?.lat, fix?.lng, offlineRoute?.distanceM, positionUnknown, controlRoutes, assignedRank, cancelled, hazards.length, sosId, alternatives.map((r) => r.exit.id).toList(), selectedExitId, targetReason, workerPickedExitId, simulating];
 }

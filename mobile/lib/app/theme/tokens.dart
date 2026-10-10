@@ -31,6 +31,7 @@ class MgColors extends ThemeExtension<MgColors> {
     required this.crisis,
     required this.info,
     required this.infoBg,
+    required this.positionBlue,
   });
 
   final Color ink900, ink800, ink700, ink600;
@@ -38,6 +39,9 @@ class MgColors extends ThemeExtension<MgColors> {
   final Color bg, surface, surfaceRaised, text, muted, border;
   final Color amber500, amber600, amber50;
   final Color success, successBg, warning, warningBg, danger, dangerBg, crisis, info, infoBg;
+
+  /// "You are here" on maps.
+  final Color positionBlue;
 
   static const light = MgColors(
     ink900: Color(0xFF0B1220),
@@ -67,6 +71,7 @@ class MgColors extends ThemeExtension<MgColors> {
     crisis: Color(0xFF7F1D1D),
     info: Color(0xFF0E7490),
     infoBg: Color(0xFFECFEFF),
+    positionBlue: Color(0xFF2563EB),
   );
 
   static const dark = MgColors(
@@ -97,6 +102,7 @@ class MgColors extends ThemeExtension<MgColors> {
     crisis: Color(0xFFB91C1C),
     info: Color(0xFF22D3EE),
     infoBg: Color(0xFF0D2A33),
+    positionBlue: Color(0xFF60A5FA),
   );
 
   static MgColors of(BuildContext context) => Theme.of(context).extension<MgColors>() ?? light;
