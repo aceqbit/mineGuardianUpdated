@@ -4,7 +4,7 @@ import 'package:flutter/services.dart';
 
 import '../theme/motion.dart';
 import '../theme/tokens.dart';
-import 'skeleton.dart';
+import 'tile_art.dart';
 
 /// Image tile: network image, dark gradient, centred 56 px glass icon badge, shimmer, gradient fallback.
 class MediaTile extends StatelessWidget {
@@ -19,9 +19,6 @@ class MediaTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = MgColors.of(context);
-    final fallback = DecoratedBox(
-      decoration: BoxDecoration(gradient: LinearGradient(colors: [c.ink700, c.ink900], begin: Alignment.topLeft, end: Alignment.bottomRight)),
-    );
     return Semantics(
       button: onTap != null,
       label: subtitle == null ? title : '$title. $subtitle',
@@ -42,32 +39,36 @@ class MediaTile extends StatelessWidget {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
+                  // The drawn illustration is always there; the photo fades in over it when (and if) it loads.
+                  TileArt(kind: tileArtFor(imageUrl)),
                   CachedNetworkImage(
                     imageUrl: imageUrl,
                     fit: BoxFit.cover,
-                    fadeInDuration: Motion.of(context, Motion.base),
-                    placeholder: (_, _) => const Skeleton(radius: 0),
-                    errorWidget: (_, _, _) => fallback,
+                    fadeInDuration: Motion.of(context, Motion.slow),
+                    placeholder: (_, _) => const SizedBox.shrink(),
+                    errorWidget: (_, _, _) => const SizedBox.shrink(),
                   ),
                   DecoratedBox(
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
-                        colors: [c.ink900.withValues(alpha: 0.25), c.ink900.withValues(alpha: 0.85)],
+                        colors: [c.ink900.withValues(alpha: 0.0), c.ink900.withValues(alpha: 0.8)],
                       ),
                     ),
                   ),
-                  Center(
+                  Positioned(
+                    left: Space.md,
+                    top: Space.md,
                     child: Container(
-                      width: 56,
-                      height: 56,
+                      width: 40,
+                      height: 40,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         color: Colors.white.withValues(alpha: 0.18),
                         border: Border.all(color: Colors.white.withValues(alpha: 0.35)),
                       ),
-                      child: Icon(icon, color: Colors.white, size: 28),
+                      child: Icon(icon, color: Colors.white, size: 22),
                     ),
                   ),
                   Positioned(
