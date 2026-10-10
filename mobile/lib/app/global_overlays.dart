@@ -16,6 +16,7 @@ import '../features/broadcast/data/broadcast_repository.dart';
 import '../features/crisis/bloc/crisis_bloc.dart';
 import '../features/crisis/data/crisis_repository.dart';
 import 'siren.dart';
+import 'ui/read_aloud_button.dart';
 import 'theme/motion.dart';
 import 'theme/tokens.dart';
 
@@ -270,6 +271,7 @@ class BroadcastBanners extends StatelessWidget {
                     const Icon(Icons.campaign, color: Colors.white),
                     const SizedBox(width: Space.sm),
                     Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('${m.priority.label.toUpperCase()} · ${m.senderName}', style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w700)), Text(m.text, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700))])),
+                    ReadAloudButton(owner: 'bc-${m.id}', segments: [m.text], onDark: true),
                     TextButton(onPressed: () => _reply(context, m.id), child: const Text('Reply', style: TextStyle(color: Colors.white))),
                     TextButton(onPressed: () => context.read<BroadcastInboxBloc>().add(InboxGotIt(m.id)), child: const Text('Got it', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800))),
                   ]),

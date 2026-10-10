@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/tokens.dart';
+import '../../../app/ui/read_aloud_button.dart';
 import '../data/first_aid.dart';
 
 Future<void> showFirstAidSheet(BuildContext context) => showModalBottomSheet<void>(
@@ -40,6 +41,7 @@ class FirstAidSheet extends StatelessWidget {
                       childrenPadding: const EdgeInsets.fromLTRB(Space.lg, 0, Space.lg, Space.md),
                       expandedCrossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        Align(alignment: Alignment.centerLeft, child: ReadAloudButton(owner: 'first-aid:${g.title}', label: 'Read aloud', segments: [g.title, ...g.steps])),
                         for (var i = 0; i < g.steps.length; i++)
                           Padding(
                             padding: const EdgeInsets.only(bottom: Space.sm),

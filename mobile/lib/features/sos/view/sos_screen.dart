@@ -9,6 +9,8 @@ import '../../../app/responsive.dart';
 import '../../../app/theme/tokens.dart';
 import '../../../app/ui/mg_button.dart';
 import '../../../app/ui/pulse_dot.dart';
+import '../../../app/ui/read_aloud_button.dart';
+import '../data/emergency_protocol.dart';
 import '../../../contracts/routes.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/auth/session_bloc.dart';
@@ -175,6 +177,11 @@ class _SosViewState extends State<_SosView> {
       MgButton(label: 'Call supervisor', icon: Icons.call, expand: true, onPressed: _call),
       const SizedBox(height: Space.md),
       MgButton(label: 'Share location by SMS', icon: Icons.sms, expand: true, kind: MgButtonKind.secondary, onPressed: () => _sms(s)),
+      const SizedBox(height: Space.md),
+      Align(
+        alignment: Alignment.centerLeft,
+        child: ReadAloudButton(owner: 'evac-protocol', label: 'Read evacuation protocol aloud', segments: [evacuationProtocolTitle, ...evacuationProtocol, if (s.offlineRoute != null) s.offlineRoute!.summary]),
+      ),
       const SizedBox(height: Space.md),
       MgButton(label: 'First aid', icon: Icons.medical_services, expand: true, kind: MgButtonKind.secondary, onPressed: () => showFirstAidSheet(context)),
       if (s.status == SosSendStatus.failed) ...[
