@@ -46,7 +46,7 @@ router.get(
     }
     if (user.role === 'miner' && user.zoneId) {
       const sups = await User.find({ role: 'supervisor', zoneId: user.zoneId, status: 'active' }).select('fullName phone.e164');
-      out.zoneSupervisors = sups.map((s) => ({ name: s.fullName, e164: s.phone.e164 }));
+      out.zoneSupervisors = sups.filter((s) => s.phone?.e164).map((s) => ({ name: s.fullName, e164: s.phone.e164 }));
     }
     res.json(out);
   }),

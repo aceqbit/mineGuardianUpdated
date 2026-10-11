@@ -27,4 +27,3 @@ export const BROADCAST_SCOPE = e('ALL', 'ZONE', 'ROLE');
 export const BROADCAST_PRIORITY = e('INFO', 'URGENT', 'EMERGENCY');
 export const CONTACT_CATEGORY = e('POLICE', 'FIRE', 'MINE_RESCUE', 'AMBULANCE', 'DISTRICT_MINING_AUTHORITY');
 export const REVIEW_STATUS = e('PENDING_REVIEW', 'DECIDED');
-export const LOGIN_EMAIL_DOMAIN = 'phone.mineguardian.app';

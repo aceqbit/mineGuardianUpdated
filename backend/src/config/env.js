@@ -37,6 +37,10 @@ const schema = z
   TWILIO_AUTH_TOKEN: optStr,
   TWILIO_FROM_NUMBER: optStr,
   TWILIO_DRY_RUN: bool(true),
+  OTP_REQUIRED: bool(true),
+  GMAIL_USER: optStr,
+  GMAIL_APP_PASSWORD: optStr,
+  TWILIO_CALL_ALLOWLIST: optStr,
   SLA_MINUTES: z.coerce.number().default(30),
   SLA_REMINDER_BASE_MINUTES: z.coerce.number().default(5),
 })

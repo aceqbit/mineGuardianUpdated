@@ -10,6 +10,17 @@ export function logDevBypassWarning() {
   if (devBypassOn()) logger.warn('DEV_AUTH_BYPASS is ON (x-dev-user-id header accepted). Never use outside development.');
 }
 
+/** A server clock slightly behind Google's rejects brand-new tokens ("used too early"); one short wait fixes it. */
+async function verifyWithSkewRetry(token) {
+  try {
+    return await firebaseAuth().verifyIdToken(token);
+  } catch (err) {
+    if (!/too early/i.test(String(err?.message))) throw err;
+    await new Promise((r) => setTimeout(r, 1500));
+    return firebaseAuth().verifyIdToken(token);
+  }
+}
+
 const User = () => mongoose.model('User');
 
 async function resolveUser(firebaseUid) {
@@ -27,7 +38,7 @@ export function authenticate({ allowUnregistered = false } = {}) {
         const user = await User().findById(String(req.headers['x-dev-user-id']));
         if (!user) throw new AppError(401, 'UNAUTHENTICATED', 'Unknown dev user');
         req.user = user;
-        req.firebase = { uid: user.firebaseUid, email: user.loginEmail, dev: true };
+        req.firebase = { uid: user.firebaseUid, email: user.email, dev: true };
         return next();
       }
       const h = req.headers.authorization || '';
@@ -35,8 +46,9 @@ export function authenticate({ allowUnregistered = false } = {}) {
       if (!m) throw new AppError(401, 'UNAUTHENTICATED', 'Missing bearer token');
       let decoded;
       try {
-        decoded = await firebaseAuth().verifyIdToken(m[1]);
-      } catch {
+        decoded = await verifyWithSkewRetry(m[1]);
+      } catch (err) {
+        logger.warn({ firebaseCode: err?.code, reason: String(err?.message || '').slice(0, 160) }, 'ID token rejected');
         throw new AppError(401, 'UNAUTHENTICATED', 'Invalid or expired token');
       }
       req.firebase = decoded;
@@ -77,7 +89,7 @@ export async function verifySocketHandshake(handshake) {
     if (u) return u;
   }
   if (!token) throw new Error('UNAUTHENTICATED');
-  const decoded = await firebaseAuth().verifyIdToken(token);
+  const decoded = await verifyWithSkewRetry(token);
   const user = await resolveUser(decoded.uid);
   if (!user) throw new Error('USER_NOT_REGISTERED');
   if (user.status !== 'active') throw new Error('ACCOUNT_INACTIVE');

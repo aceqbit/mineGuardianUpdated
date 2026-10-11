@@ -6,14 +6,6 @@ export const DESIGNATIONS = ['Miner', 'Shot-firer', 'Mining Sirdar', 'Overman', 
 export const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 export const RELATIONS = ['Spouse', 'Parent', 'Sibling', 'Child', 'Friend', 'Other'];
 
-export const phoneSchema = z
-  .object({
-    isoCode: z.string().regex(/^[A-Za-z]{2}$/, 'isoCode must be 2 letters').transform((s) => s.toUpperCase()),
-    dialCode: z.string().regex(/^\d{1,4}$/, 'dialCode must be 1 to 4 digits'),
-    national: z.string().regex(/^[1-9]\d{3,13}$/, 'national must be 4 to 14 digits and not start with 0'),
-  })
-  .strict();
-
 const ageOn = (iso, now = new Date()) => {
   const d = new Date(iso);
   let age = now.getUTCFullYear() - d.getUTCFullYear();
@@ -33,7 +25,7 @@ export const signupSchema = z
       .trim()
       .regex(/^[A-Za-z]{2,4}-?\d{3,8}$/, 'Invalid employee ID')
       .transform((s) => s.toUpperCase()),
-    phone: phoneSchema,
+    email: z.string().trim().email().max(120),
     designation: z.enum(DESIGNATIONS),
     experienceYears: z.number().int().min(0).max(45),
     dateOfJoining: isoDate.refine((v) => new Date(v) <= new Date(), 'Date of joining cannot be in the future'),
@@ -45,13 +37,6 @@ export const signupSchema = z
     mineName: z.string().trim().min(2).max(80),
     zoneId: objectId,
     shift: z.enum(SHIFT),
-    emergencyContact: z
-      .object({
-        name: z.string().trim().min(2).max(60),
-        relation: z.enum(RELATIONS),
-        phone: phoneSchema,
-      })
-      .strict(),
     address: z.string().trim().max(200).optional(),
   })
   .strict();
