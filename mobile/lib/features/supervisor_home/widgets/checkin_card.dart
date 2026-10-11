@@ -1,11 +1,10 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
 
 import '../../../app/theme/motion.dart';
 import '../../../app/theme/tokens.dart';
 import '../../../app/ui/mg_card.dart';
-import '../../../app/ui/skeleton.dart';
+import '../../../app/ui/net_photo.dart';
 import '../../../app/ui/status_chip.dart';
 import '../../../contracts/enums.dart';
 import '../../../core/time/ist.dart';
@@ -63,12 +62,11 @@ class CheckinCard extends StatelessWidget {
       child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Hero(
           tag: 'checkin-${item.id}',
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(Radii.sm),
-            child: SizedBox(
-              width: 64,
-              height: 64,
-              child: item.thumbUrl == null ? ColoredBox(color: c.border, child: Icon(Icons.image, color: c.muted)) : CachedNetworkImage(imageUrl: item.thumbUrl!, fit: BoxFit.cover, placeholder: (_, _) => const Skeleton(radius: 0), errorWidget: (_, _, _) => Icon(Icons.broken_image, color: c.muted)),
+          child: GestureDetector(
+            onTap: item.thumbUrl == null ? null : () => showPhotoViewer(context, url: item.thumbUrl, title: '${item.workerName} · ${formatIstTime(item.time)}'),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(Radii.sm),
+              child: SizedBox(width: 88, height: 88, child: NetPhoto(url: item.thumbUrl, fallbackIcon: Icons.photo_camera_outlined)),
             ),
           ),
         ),

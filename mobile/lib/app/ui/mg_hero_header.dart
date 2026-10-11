@@ -3,17 +3,21 @@ import 'package:flutter/material.dart';
 
 import '../theme/motion.dart';
 import '../theme/tokens.dart';
+import 'tile_art.dart';
 
 /// Navy gradient header with an optional photo wash, rounded bottom corners and a content slot.
 /// Used at the top of the role home screens so each starts with who/where/what-now in one glance.
 class MgHeroHeader extends StatelessWidget {
-  const MgHeroHeader({super.key, required this.title, this.subtitle, this.eyebrow, this.imageUrl, this.trailing, this.child, this.padding});
+  const MgHeroHeader({super.key, required this.title, this.subtitle, this.eyebrow, this.imageUrl, this.art, this.trailing, this.child, this.padding});
   final String title;
   final String? subtitle;
 
   /// Small label above the title (e.g. "Good morning").
   final String? eyebrow;
   final String? imageUrl;
+
+  /// Drawn illustration used as the background wash (no network needed).
+  final TileArtKind? art;
   final Widget? trailing;
 
   /// Content under the title (chips, rings, progress).
@@ -31,6 +35,7 @@ class MgHeroHeader extends StatelessWidget {
         child: DecoratedBox(
           decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [c.ink800, c.ink600])),
           child: Stack(children: [
+            if (art != null) Positioned.fill(child: Opacity(opacity: 0.55, child: TileArt(kind: art!))),
             if (imageUrl != null)
               Positioned.fill(
                 child: Opacity(

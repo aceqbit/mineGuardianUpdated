@@ -204,7 +204,7 @@ class SosFeed extends FeedItem {
 }
 
 class WorkerToday extends Equatable {
-  const WorkerToday({required this.id, required this.fullName, required this.employeeId, required this.status, this.phone, this.verdict, this.finalVerdict, this.riskBand});
+  const WorkerToday({required this.id, required this.fullName, required this.employeeId, required this.status, this.phone, this.verdict, this.finalVerdict, this.riskBand, this.checkInId, this.capturedAt, this.thumbUrl, this.count = 0});
   final String id;
   final String fullName;
   final String employeeId;
@@ -214,14 +214,20 @@ class WorkerToday extends Equatable {
   final Verdict? finalVerdict;
   final RiskBand? riskBand;
 
+  /// Today's latest check-in: id, when it was captured, its photo link, and how many were received today.
+  final String? checkInId;
+  final DateTime? capturedAt;
+  final String? thumbUrl;
+  final int count;
+
   factory WorkerToday.fromJson(Map<String, dynamic> j) {
     final today = (j['today'] as Map?)?.cast<String, dynamic>() ?? const {};
     Verdict? v(dynamic w) => w is String ? Verdict.fromWire(w) : null;
-    return WorkerToday(id: j['id'].toString(), fullName: j['fullName'] as String? ?? '', employeeId: j['employeeId'] as String? ?? '', phone: j['phoneE164'] as String?, status: today['status'] as String? ?? 'NOT_CHECKED_IN', verdict: v(today['verdict']), finalVerdict: v(today['finalVerdict']));
+    return WorkerToday(id: j['id'].toString(), fullName: j['fullName'] as String? ?? '', employeeId: j['employeeId'] as String? ?? '', phone: j['phoneE164'] as String?, status: today['status'] as String? ?? 'NOT_CHECKED_IN', verdict: v(today['verdict']), finalVerdict: v(today['finalVerdict']), checkInId: today['checkInId'] as String?, capturedAt: today['capturedAt'] == null ? null : _t(today['capturedAt']), thumbUrl: today['thumbUrl'] as String?, count: (today['count'] as num?)?.toInt() ?? 0);
   }
 
-  WorkerToday copyWith({String? status, RiskBand? riskBand}) => WorkerToday(id: id, fullName: fullName, employeeId: employeeId, phone: phone, status: status ?? this.status, verdict: verdict, finalVerdict: finalVerdict, riskBand: riskBand ?? this.riskBand);
+  WorkerToday copyWith({String? status, RiskBand? riskBand}) => WorkerToday(id: id, fullName: fullName, employeeId: employeeId, phone: phone, status: status ?? this.status, verdict: verdict, finalVerdict: finalVerdict, riskBand: riskBand ?? this.riskBand, checkInId: checkInId, capturedAt: capturedAt, thumbUrl: thumbUrl, count: count);
 
   @override
-  List<Object?> get props => [id, fullName, employeeId, phone, status, verdict, finalVerdict, riskBand];
+  List<Object?> get props => [id, fullName, employeeId, phone, status, verdict, finalVerdict, riskBand, checkInId, capturedAt, thumbUrl, count];
 }
