@@ -7,6 +7,7 @@ import '../../../core/api/api_client.dart';
 import '../../../core/db/layout_repository.dart';
 import '../../../core/location/location_service.dart';
 import '../../../core/models/mine_layout.dart';
+import '../../../core/models/sample_layout.dart';
 import '../../../core/socket/socket_service.dart';
 import '../../../core/sync/outbox_queue.dart';
 import '../../../core/sync/sync_engine.dart';
@@ -47,6 +48,14 @@ class SosBloc extends Bloc<SosEvent, SosState> {
       emit(state.copyWith(workerPickedExitId: e.exitId));
       _rebuildGraph(emit);
     });
+    on<SosStartPinned>((e, emit) {
+      emit(state.copyWith(pinnedStart: e.point, clearPinnedStart: e.point == null, clearPicked: true));
+      _rebuildGraph(emit);
+    });
+    on<SosDestinationSelected>((e, emit) {
+      emit(state.copyWith(destinationId: e.id, clearDestination: e.id == null, clearPicked: true));
+      _rebuildGraph(emit);
+    });
     on<SosSimulateToggled>(_onSimulate);
     on<SosRefreshTick>(_onRefresh);
     on<SosRetrySend>((e, emit) => _send(emit));
@@ -83,7 +92,7 @@ class SosBloc extends Bloc<SosEvent, SosState> {
     // Offline-first data: cached layout + cached hazards.
     final layout = await _layoutRepo.cached();
     final hazards = (await _layoutRepo.cachedOpenHazards()).map(CachedHazard.fromJson).whereType<CachedHazard>().toList();
-    emit(state.copyWith(layout: layout, hazards: hazards, zoneCode: zoneCode));
+    emit(state.copyWith(layout: layout ?? sampleLayout(), hazards: hazards, zoneCode: zoneCode));
     _rebuildGraph(emit);
     _layoutRepo.refresh().then((fresh) {
       if (fresh != null && fresh.version != state.layout?.version && !isClosed) add(SosLayoutLoaded(fresh));
@@ -121,7 +130,7 @@ class SosBloc extends Bloc<SosEvent, SosState> {
     emit(state.copyWith(fix: e.fix, positionUnknown: false));
     // Reroute on the first fix and whenever the worker has moved more than 10 m since the last computation.
     final last = _lastRouted;
-    if (last == null || state.layout == null || haversineM(last, GeoPoint(e.fix.lat, e.fix.lng)) > 10) _rebuildGraph(emit);
+    if (state.pinnedStart == null && (last == null || state.layout == null || haversineM(last, GeoPoint(e.fix.lat, e.fix.lng)) > 10)) _rebuildGraph(emit);
   }
 
   /// Offline route from the cached layout, recomputed whenever position / layout / hazards change.
@@ -130,11 +139,11 @@ class SosBloc extends Bloc<SosEvent, SosState> {
     if (layout == null) return;
     _graph = EvacGraph.build(layout, hazards: state.hazards);
     final fix = state.fix;
-    final here = fix != null ? GeoPoint(fix.lat, fix.lng) : _zoneCentre(layout);
-    final choice = chooseTarget(graph: _graph!, from: here, designatedExitId: designatedExitId, workerPickedExitId: state.workerPickedExitId);
+    final here = state.pinnedStart ?? (fix != null && !state.fixOutsideMine ? GeoPoint(fix.lat, fix.lng) : _zoneCentre(layout));
+    final choice = chooseTarget(graph: _graph!, from: here, designatedExitId: designatedExitId, workerPickedExitId: state.workerPickedExitId, destinationId: state.destinationId);
     final picked = choice.route;
     _lastRouted = here;
-    emit(state.copyWith(alternatives: choice.alternatives, offlineRoute: picked, clearOfflineRoute: picked == null, selectedExitId: picked?.exit.id, targetReason: choice.reason, positionUnknown: fix == null));
+    emit(state.copyWith(alternatives: choice.alternatives, offlineRoute: picked, clearOfflineRoute: picked == null, selectedExitId: picked?.exit.id, selectedRouteKey: picked?.key, targetReason: choice.reason, positionUnknown: (fix == null || state.fixOutsideMine) && state.pinnedStart == null));
   }
 
   GeoPoint? _zoneCentre(MineLayoutData layout) {

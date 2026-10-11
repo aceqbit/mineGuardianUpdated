@@ -1,3 +1,5 @@
+import '../../../core/maps/google_tiles.dart';
+import 'route_options_sheet.dart';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -17,9 +19,15 @@ LatLng _ll(GeoPoint p) => LatLng(p.lat, p.lng);
 /// exit, up to three self-computed routes re-planned as you move, turn-by-turn guidance, and the control room's route
 /// when one arrives. Online it draws OpenStreetMap tiles under the mine layout; offline the layout lines still draw.
 class LiveNavMap extends StatefulWidget {
-  const LiveNavMap({super.key, required this.state, required this.onSelectRoute, this.onToggleSimulate});
+  const LiveNavMap({super.key, required this.state, required this.onSelectRoute, this.onToggleSimulate, this.onPinStart, this.onPickDestination});
   final SosState state;
   final ValueChanged<String> onSelectRoute;
+
+  /// Pin the route start on the map (null = back to the live position). With [onPickDestination] enables the start/end sheet.
+  final ValueChanged<GeoPoint?>? onPinStart;
+
+  /// Choose the end of the route: an exit or refuge id (null = nearest safe exit).
+  final ValueChanged<String?>? onPickDestination;
 
   /// When set, a "Simulate walk" control is shown (evacuation view in debug builds or with NAV_SIMULATE).
   final VoidCallback? onToggleSimulate;
@@ -34,6 +42,7 @@ class _LiveNavMapState extends State<LiveNavMap> with SingleTickerProviderStateM
   LatLng? _from, _to;
   bool _follow = true;
   bool _ready = false;
+  String? _tiles;
 
   LatLng? get _shown {
     final to = _to;
@@ -52,6 +61,9 @@ class _LiveNavMapState extends State<LiveNavMap> with SingleTickerProviderStateM
       _move.value = 1;
     }
     _move.addListener(_onTick);
+    GoogleTiles.instance.template().then((t) {
+      if (mounted && t != null) setState(() => _tiles = t);
+    });
   }
 
   void _onTick() {
@@ -87,7 +99,7 @@ class _LiveNavMapState extends State<LiveNavMap> with SingleTickerProviderStateM
 
   LatLngBounds? _bounds(SosState s) {
     final pts = <LatLng>[
-      if (s.fix != null) LatLng(s.fix!.lat, s.fix!.lng),
+      if (s.fix != null && !s.fixOutsideMine) LatLng(s.fix!.lat, s.fix!.lng),
       if (s.offlineRoute != null) ...s.offlineRoute!.points.map(_ll),
       if (s.offlineRoute == null && s.layout != null) ...s.layout!.exits.map((e) => _ll(e.point)),
     ];
@@ -108,7 +120,7 @@ class _LiveNavMapState extends State<LiveNavMap> with SingleTickerProviderStateM
     final route = s.offlineRoute;
     final control = s.activeControlRoute;
     final bounds = _bounds(s);
-    final me = _shown;
+    final me = s.fixOutsideMine ? null : _shown;
     final centre = me ?? _ll(layout.anchor);
     final target = control != null ? null : route;
     final progress = (route != null && s.fix != null) ? routeProgress(route, GeoPoint(s.fix!.lat, s.fix!.lng)) : null;
@@ -144,18 +156,21 @@ class _LiveNavMapState extends State<LiveNavMap> with SingleTickerProviderStateM
               maxZoom: 20,
               initialCameraFit: bounds == null ? null : CameraFit.bounds(bounds: bounds, padding: const EdgeInsets.fromLTRB(48, 150, 48, 120), maxZoom: 19),
               onMapReady: () => _ready = true,
+              onLongPress: (_, ll) => widget.onPinStart?.call(GeoPoint(ll.latitude, ll.longitude)),
               onPositionChanged: (_, hasGesture) {
                 if (hasGesture && _follow) setState(() => _follow = false);
               },
               interactionOptions: const InteractionOptions(flags: InteractiveFlag.all & ~InteractiveFlag.rotate),
             ),
             children: [
-              TileLayer(
-                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                userAgentPackageName: 'app.mineguardian.mobile',
-                maxNativeZoom: 19,
-                errorTileCallback: (tile, error, stack) {}, // offline: leave the tile blank, the mine layout still draws
-              ),
+              // Google base map when a key is configured and reachable; otherwise the mine layout draws on the plain background.
+              if (_tiles != null)
+                TileLayer(
+                  urlTemplate: _tiles!,
+                  userAgentPackageName: 'app.mineguardian.mobile',
+                  maxNativeZoom: 19,
+                  errorTileCallback: (tile, error, stack) {}, // offline: leave the tile blank, the mine layout still draws
+                ),
               PolylineLayer(polylines: tunnelLines),
               PolylineLayer(polylines: altLines),
               if (progress != null && progress.travelled.length > 1) PolylineLayer(polylines: [Polyline(points: progress.travelled.map(_ll).toList(), strokeWidth: 6, color: c.slate400.withValues(alpha: 0.8))]),
@@ -168,6 +183,7 @@ class _LiveNavMapState extends State<LiveNavMap> with SingleTickerProviderStateM
                 for (final e in layout.exits)
                   if (e.id != target?.exit.id) Marker(point: _ll(e.point), width: 30, height: 30, child: Icon(Icons.exit_to_app, color: c.success, size: 26)),
                 if (target != null) Marker(point: _ll(target.exit.point), width: 120, height: 84, child: _TargetPin(label: target.exit.name, colors: c)),
+                if (s.pinnedStart != null) Marker(point: _ll(s.pinnedStart!), width: 80, height: 64, child: _StartPin(colors: c)),
                 if (me != null) Marker(point: me, width: 44, height: 44, child: _YouMarker(heading: s.fix?.headingDeg, color: c.positionBlue)),
               ]),
             ],
@@ -190,10 +206,21 @@ class _LiveNavMapState extends State<LiveNavMap> with SingleTickerProviderStateM
               ),
               const SizedBox(height: Space.sm),
             ],
+            if (widget.onPinStart != null && widget.onPickDestination != null) ...[
+              FloatingActionButton.small(
+                heroTag: null,
+                tooltip: 'Choose start and end',
+                backgroundColor: (s.pinnedStart != null || s.destinationId != null) ? c.amber500 : c.surface,
+                foregroundColor: c.ink900,
+                onPressed: () => showRouteOptions(context, state: s, onUseLiveStart: () => widget.onPinStart!(null), onPickDestination: widget.onPickDestination!),
+                child: const Icon(Icons.tune),
+              ),
+              const SizedBox(height: Space.sm),
+            ],
             FloatingActionButton.small(heroTag: null, tooltip: 'Centre on me', backgroundColor: _follow ? c.amber500 : c.surface, foregroundColor: c.ink900, onPressed: _recentre, child: Icon(_follow ? Icons.my_location : Icons.location_searching)),
           ]),
         ),
-        const Positioned(left: 6, bottom: 2, child: _Attribution()),
+        if (_tiles != null) const Positioned(left: 6, bottom: 2, child: _Attribution()),
       ]),
     );
   }
@@ -202,7 +229,7 @@ class _LiveNavMapState extends State<LiveNavMap> with SingleTickerProviderStateM
 class _Attribution extends StatelessWidget {
   const _Attribution();
   @override
-  Widget build(BuildContext context) => Text('© OpenStreetMap contributors', style: Theme.of(context).textTheme.labelSmall?.copyWith(fontSize: 9, color: Colors.black54));
+  Widget build(BuildContext context) => Text('Map data © Google', style: Theme.of(context).textTheme.labelSmall?.copyWith(fontSize: 9, color: Colors.black54));
 }
 
 /// Position dot with an optional heading arrow and a soft pulse.
@@ -221,6 +248,24 @@ class _YouMarker extends StatelessWidget {
         dot,
       ]),
     );
+  }
+}
+
+/// Marks the start the worker pinned on the map.
+class _StartPin extends StatelessWidget {
+  const _StartPin({required this.colors});
+  final MgColors colors;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(mainAxisSize: MainAxisSize.min, children: [
+      Container(
+        padding: const EdgeInsets.symmetric(horizontal: Space.sm, vertical: Space.xs),
+        decoration: BoxDecoration(color: colors.ink900, borderRadius: BorderRadius.circular(Radii.pill), boxShadow: Shadows.level(2)),
+        child: const Text('START', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w800)),
+      ),
+      Icon(Icons.trip_origin, color: colors.amberText, size: 30),
+    ]);
   }
 }
 
@@ -322,6 +367,17 @@ class _TopCard extends StatelessWidget {
           ]),
         ),
       ),
+      if (s.isSample) ...[
+        const SizedBox(height: Space.xs),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: Space.sm, vertical: Space.xs),
+            decoration: BoxDecoration(color: colors.warningFill, borderRadius: BorderRadius.circular(Radii.pill)),
+            child: const Text('SAMPLE MAP · your mine map is not available yet', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w800)),
+          ),
+        ),
+      ],
       if (cs != null) ...[
         const SizedBox(height: Space.xs),
         Container(
@@ -377,11 +433,11 @@ class _RouteChips extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(right: Space.sm),
             child: ChoiceChip(
-              selected: state.alternatives[i].exit.id == state.selectedExitId,
+              selected: state.selectedRouteKey != null ? state.alternatives[i].key == state.selectedRouteKey : state.alternatives[i].exit.id == state.selectedExitId,
               selectedColor: colors.amber500,
               backgroundColor: colors.surface,
               label: Text('Route ${String.fromCharCode(65 + i)} · ${state.alternatives[i].exit.name} · ${state.alternatives[i].distanceM.round()} m · ${state.alternatives[i].etaMin} min', style: t.labelMedium?.copyWith(color: state.alternatives[i].exit.id == state.selectedExitId ? colors.ink900 : colors.text)),
-              onSelected: (_) => onSelect(state.alternatives[i].exit.id),
+              onSelected: (_) => onSelect(state.alternatives[i].key),
             ),
           ),
       ]),

@@ -30,7 +30,7 @@ class _SosMapPanelState extends State<SosMapPanel> {
     if (s.layout == null) return EvacMapView(state: s); // shows the "map not downloaded" message
     return Stack(children: [
       Positioned.fill(
-        child: _schematic ? EvacMapView(state: s) : LiveNavMap(state: s, onSelectRoute: (id) => context.read<SosBloc>().add(SosRouteSelected(id)), onToggleSimulate: s.evacOnly && (kDebugMode || navSimulate) ? () => context.read<SosBloc>().add(const SosSimulateToggled()) : null),
+        child: _schematic ? EvacMapView(state: s) : LiveNavMap(state: s, onSelectRoute: (id) => context.read<SosBloc>().add(SosRouteSelected(id)), onPinStart: (p) => context.read<SosBloc>().add(SosStartPinned(p)), onPickDestination: (id) => context.read<SosBloc>().add(SosDestinationSelected(id)), onToggleSimulate: s.evacOnly && (kDebugMode || navSimulate) ? () => context.read<SosBloc>().add(const SosSimulateToggled()) : null),
       ),
       Positioned(
         right: _schematic ? Space.md : null,

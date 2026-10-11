@@ -74,6 +74,22 @@ class SosRouteSelected extends SosEvent {
   List<Object?> get props => [exitId];
 }
 
+/// The worker pinned a start on the map (null = back to the live GPS position).
+class SosStartPinned extends SosEvent {
+  const SosStartPinned(this.point);
+  final GeoPoint? point;
+  @override
+  List<Object?> get props => [point?.lat, point?.lng];
+}
+
+/// The worker chose the end of the route: an exit or refuge id (null = automatic nearest safe exit).
+class SosDestinationSelected extends SosEvent {
+  const SosDestinationSelected(this.id);
+  final String? id;
+  @override
+  List<Object?> get props => [id];
+}
+
 /// Periodic re-read of cached hazards and the layout version.
 class SosRefreshTick extends SosEvent {
   const SosRefreshTick();

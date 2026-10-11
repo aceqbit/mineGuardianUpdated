@@ -46,7 +46,7 @@ void main() {
           await tester.ensureVisible(find.textContaining('Route B'));
           await tester.pump();
           await tester.tap(find.textContaining('Route B'));
-          expect(picked, alts[1].exit.id);
+          expect(picked, alts[1].key);
         }
       });
     }

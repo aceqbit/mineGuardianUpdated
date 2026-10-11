@@ -44,6 +44,9 @@ class EvacRoute {
   final List<String> tunnelIds;
   final List<double> tunnelLengths;
 
+  /// Identifies this exact path (several routes can lead to the same exit).
+  String get key => '${exit.id}|${tunnelIds.join(',')}';
+
   double get etaSec => distanceM / walkSpeedMps;
   int get etaMin => math.max(1, (etaSec / 60).ceil());
   String get summary => 'Go to ${exit.name} · ${distanceM.round()} m · ~$etaMin min';
@@ -212,6 +215,33 @@ class EvacGraph {
         for (final id in r.tunnelIds) {
           penalty[id] = (penalty[id] ?? 1.0) * 2.5;
         }
+      }
+    }
+    accepted.sort((a, b) => a.distanceM.compareTo(b.distanceM));
+    return accepted;
+  }
+
+  /// Where a worker can be sent: every exit and every refuge chamber (a refuge is listed with exitType 'refuge').
+  List<LayoutExit> get destinations => [
+        ...layout.exits,
+        for (final r in layout.refuges) LayoutExit(id: r.id, name: r.name, exitType: 'refuge', point: r.point, node: r.node),
+      ];
+
+  LayoutExit? destination(String id) => destinations.where((d) => d.id == id).firstOrNull;
+
+  /// Up to [k] distinct routes from [start] to one place, best first. Each next search makes the tunnels already used
+  /// costlier; a route is kept only if it shares at most [maxOverlap] of its length with every route kept so far.
+  List<EvacRoute> routesBetween(String start, LayoutExit dest, {int k = 4, double maxOverlap = 0.7}) {
+    final accepted = <EvacRoute>[];
+    final penalty = <String, double>{};
+    for (var round = 0; round < k * 3 && accepted.length < k; round++) {
+      final s = _search(start, penalty);
+      if (!s.dist.containsKey(dest.node)) break;
+      final r = _routeTo(dest, start, s);
+      if (!accepted.any((a) => a.key == r.key) && accepted.every((a) => overlap(r, a) <= maxOverlap)) accepted.add(r);
+      if (r.tunnelIds.isEmpty) break; // start is the destination
+      for (final id in r.tunnelIds) {
+        penalty[id] = (penalty[id] ?? 1.0) * 2.5;
       }
     }
     accepted.sort((a, b) => a.distanceM.compareTo(b.distanceM));

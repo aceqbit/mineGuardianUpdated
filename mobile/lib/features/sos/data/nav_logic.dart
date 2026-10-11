@@ -38,24 +38,27 @@ TargetChoice chooseTarget({
   required GeoPoint? from,
   required String? designatedExitId,
   required String? workerPickedExitId,
+  String? destinationId,
   String? fallbackStartNode,
 }) {
   final start = from != null ? graph.nearestJunction(from) : fallbackStartNode;
   if (start == null) return const TargetChoice(route: null, reason: TargetReason.nearest, alternatives: []);
-  var alts = graph.alternativeRoutes(start);
-  final designated = designatedExitId == null ? null : graph.routeToExit(start, designatedExitId);
+  final dest = destinationId == null ? null : graph.destination(destinationId);
+  // A place the worker chose gets several different ways to reach it; otherwise one route per exit.
+  var alts = dest != null ? graph.routesBetween(start, dest) : graph.alternativeRoutes(start);
+  final designated = dest != null || designatedExitId == null ? null : graph.routeToExit(start, designatedExitId);
   if (designated != null && !alts.any((r) => r.exit.id == designated.exit.id)) {
     alts = [...alts.take(2), designated]..sort((a, b) => a.distanceM.compareTo(b.distanceM));
   }
-  if (alts.isEmpty) return TargetChoice(route: null, reason: designatedExitId == null ? TargetReason.nearest : TargetReason.designatedUnavailable, alternatives: const []);
+  if (alts.isEmpty) return TargetChoice(route: null, reason: dest != null ? TargetReason.workerChoice : (designatedExitId == null ? TargetReason.nearest : TargetReason.designatedUnavailable), alternatives: const []);
 
-  final picked = workerPickedExitId == null ? null : alts.where((r) => r.exit.id == workerPickedExitId).firstOrNull;
+  final picked = workerPickedExitId == null ? null : (alts.where((r) => r.key == workerPickedExitId).firstOrNull ?? alts.where((r) => r.exit.id == workerPickedExitId).firstOrNull);
   if (picked != null) {
     final reason = picked.exit.id == designatedExitId ? TargetReason.designated : TargetReason.workerChoice;
     return TargetChoice(route: picked, reason: reason, alternatives: alts);
   }
   if (designated != null) return TargetChoice(route: alts.firstWhere((r) => r.exit.id == designated.exit.id), reason: TargetReason.designated, alternatives: alts);
-  return TargetChoice(route: alts.first, reason: designatedExitId == null ? TargetReason.nearest : TargetReason.designatedUnavailable, alternatives: alts);
+  return TargetChoice(route: alts.first, reason: dest != null ? TargetReason.workerChoice : (designatedExitId == null ? TargetReason.nearest : TargetReason.designatedUnavailable), alternatives: alts);
 }
 
 // ---------------------------------------------------------------------------------------------------------------- turns

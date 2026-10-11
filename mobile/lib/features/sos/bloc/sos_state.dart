@@ -2,11 +2,15 @@ import 'package:equatable/equatable.dart';
 
 import '../../../core/location/location_service.dart';
 import '../../../core/models/mine_layout.dart';
+import '../../../core/models/sample_layout.dart';
 import '../data/evac_graph.dart';
 import '../data/nav_logic.dart';
 
 /// Distance from the route beyond which the worker is told they are off route.
 const double offRouteThresholdM = 30;
+
+/// A GPS fix farther than this from the mine layout is not in the mine (a laptop at home, a phone in town): it is ignored for routing.
+const double outsideMineM = 5000;
 
 /// Within this many metres of the exit point the worker counts as arrived.
 const double arrivedRadiusM = 25;
@@ -46,6 +50,9 @@ class SosState extends Equatable {
     this.targetReason = TargetReason.nearest,
     this.workerPickedExitId,
     this.simulating = false,
+    this.pinnedStart,
+    this.destinationId,
+    this.selectedRouteKey,
   });
 
   final bool evacOnly;
@@ -76,19 +83,37 @@ class SosState extends Equatable {
   /// True while the demo walk simulator is feeding positions (evacuation view only).
   final bool simulating;
 
+  /// Start the worker pinned on the map (null = follow the live GPS position).
+  final GeoPoint? pinnedStart;
+
+  /// Exit or refuge the worker chose as the end of the route (null = automatic).
+  final String? destinationId;
+
+  /// [EvacRoute.key] of the selected on-device route.
+  final String? selectedRouteKey;
+
+  /// True while the built-in sample layout is shown because the real one is not available.
+  bool get isSample => layout?.version == sampleLayoutVersion;
+
+  /// The GPS fix is nowhere near the mine layout.
+  bool get fixOutsideMine {
+    final f = fix, l = layout;
+    return f != null && l != null && haversineM(GeoPoint(f.lat, f.lng), l.anchor) > outsideMineM;
+  }
+
   /// Metres from the current fix to the selected on-device route (null when unknown).
   double? get offRouteM {
     final f = fix, r = offlineRoute;
-    if (f == null || r == null) return null;
+    if (f == null || r == null || fixOutsideMine) return null;
     return EvacGraph.distanceToRouteM(GeoPoint(f.lat, f.lng), r);
   }
 
-  bool get offRoute => (offRouteM ?? 0) > offRouteThresholdM;
+  bool get offRoute => pinnedStart == null && (offRouteM ?? 0) > offRouteThresholdM;
 
   /// Metres to the target exit (straight line), null without a fix or route.
   double? get distanceToTargetM {
     final f = fix, r = offlineRoute;
-    if (f == null || r == null) return null;
+    if (f == null || r == null || fixOutsideMine) return null;
     return haversineM(GeoPoint(f.lat, f.lng), r.exit.point);
   }
 
@@ -124,6 +149,12 @@ class SosState extends Equatable {
     TargetReason? targetReason,
     String? workerPickedExitId,
     bool? simulating,
+    GeoPoint? pinnedStart,
+    bool clearPinnedStart = false,
+    String? destinationId,
+    bool clearDestination = false,
+    String? selectedRouteKey,
+    bool clearPicked = false,
   }) =>
       SosState(
         evacOnly: evacOnly,
@@ -143,8 +174,11 @@ class SosState extends Equatable {
         alternatives: alternatives ?? this.alternatives,
         selectedExitId: selectedExitId ?? this.selectedExitId,
         targetReason: targetReason ?? this.targetReason,
-        workerPickedExitId: workerPickedExitId ?? this.workerPickedExitId,
+        workerPickedExitId: clearPicked ? null : (workerPickedExitId ?? this.workerPickedExitId),
         simulating: simulating ?? this.simulating,
+        pinnedStart: clearPinnedStart ? null : (pinnedStart ?? this.pinnedStart),
+        destinationId: clearDestination ? null : (destinationId ?? this.destinationId),
+        selectedRouteKey: clearPicked ? null : (selectedRouteKey ?? this.selectedRouteKey),
       );
 
   SosState withEvacOnly(bool v) => SosState(
@@ -167,8 +201,11 @@ class SosState extends Equatable {
         targetReason: targetReason,
         workerPickedExitId: workerPickedExitId,
         simulating: simulating,
+        pinnedStart: pinnedStart,
+        destinationId: destinationId,
+        selectedRouteKey: selectedRouteKey,
       );
 
   @override
-  List<Object?> get props => [evacOnly, status, sentAt, retries, layout?.version, zoneCode, fix?.lat, fix?.lng, offlineRoute?.distanceM, positionUnknown, controlRoutes, assignedRank, cancelled, hazards.length, sosId, alternatives.map((r) => r.exit.id).toList(), selectedExitId, targetReason, workerPickedExitId, simulating];
+  List<Object?> get props => [evacOnly, status, sentAt, retries, layout?.version, zoneCode, fix?.lat, fix?.lng, offlineRoute?.distanceM, positionUnknown, controlRoutes, assignedRank, cancelled, hazards.length, sosId, alternatives.map((r) => r.exit.id).toList(), selectedExitId, targetReason, workerPickedExitId, simulating, pinnedStart?.lat, pinnedStart?.lng, destinationId, selectedRouteKey];
 }
