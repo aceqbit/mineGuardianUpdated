@@ -44,14 +44,23 @@ export async function supervisorSnapshot(user, zoneIdParam) {
   const latestByWorker = new Map();
   for (const ci of todays) if (!latestByWorker.has(String(ci.workerId))) latestByWorker.set(String(ci.workerId), ci);
 
-  const workers = miners.map((m) => {
-    const ci = latestByWorker.get(String(m._id));
-    const rv = ci ? summarizeReview(reviews.get(String(ci._id))) : undefined;
-    return {
-      id: String(m._id), fullName: m.fullName, employeeId: m.employeeId, shift: m.shift, phoneE164: m.phone?.e164,
-      today: { status: ci ? ci.status : 'NOT_CHECKED_IN', verdict: rv?.verdict ?? null, finalVerdict: rv?.finalVerdict ?? null },
-    };
-  });
+  const countByWorker = new Map();
+  for (const ci of todays) countByWorker.set(String(ci.workerId), (countByWorker.get(String(ci.workerId)) ?? 0) + 1);
+
+  const workers = await Promise.all(
+    miners.map(async (m) => {
+      const ci = latestByWorker.get(String(m._id));
+      const rv = ci ? summarizeReview(reviews.get(String(ci._id))) : undefined;
+      return {
+        id: String(m._id), fullName: m.fullName, employeeId: m.employeeId, shift: m.shift, phoneE164: m.phone?.e164,
+        today: {
+          status: ci ? ci.status : 'NOT_CHECKED_IN', verdict: rv?.verdict ?? null, finalVerdict: rv?.finalVerdict ?? null,
+          checkInId: ci ? String(ci._id) : null, capturedAt: ci ? (ci.capturedAt || ci.receivedAt)?.toISOString() : null,
+          thumbUrl: ci ? await signedUrl(ci.storagePath).catch(() => null) : null, count: countByWorker.get(String(m._id)) ?? 0,
+        },
+      };
+    }),
+  );
 
   const checkins = await Promise.all(
     todays.map(async (ci) => {
