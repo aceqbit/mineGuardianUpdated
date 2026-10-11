@@ -100,7 +100,7 @@ class _WorkerHomeViewState extends State<_WorkerHomeView> with WidgetsBindingObs
     final user = widget.user;
     final socket = context.read<SocketService>();
     final compact = context.isCompact;
-    final sos = SosButton(size: compact ? 72 : 52, onTriggered: () => context.go(Routes.workerSos));
+    final sos = SosButton(size: compact ? 72 : 52, onTriggered: () => context.go(Routes.workerSos, extra: true));
     return AppScaffold(
       title: 'Worker home',
       selectedIndex: 0,

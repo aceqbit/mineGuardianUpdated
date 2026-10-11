@@ -70,7 +70,7 @@ class _Tile extends StatelessWidget {
         height: 56,
         child: item.thumbUrl == null
             ? ColoredBox(color: c.slate100.withValues(alpha: 1), child: Icon(Icons.image, color: c.slate400))
-            : CachedNetworkImage(imageUrl: item.thumbUrl!, fit: BoxFit.cover, placeholder: (_, _) => const Skeleton(radius: 0), errorWidget: (_, _, _) => Icon(Icons.broken_image, color: c.slate400)),
+            : CachedNetworkImage(imageUrl: item.thumbUrl!, cacheKey: 'checkin-${item.id}', fit: BoxFit.cover, placeholder: (_, _) => const Skeleton(radius: 0), errorWidget: (_, _, _) => Icon(Icons.broken_image, color: c.slate400)),
       ),
     );
     return AnimatedContainer(

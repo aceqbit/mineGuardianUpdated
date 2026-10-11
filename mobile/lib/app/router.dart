@@ -79,7 +79,11 @@ GoRouter buildRouter(SessionBloc session, {List<RouteBase> extraRoutes = const [
           GoRoute(path: Routes.worker, pageBuilder: (c, s) => fadeThroughPage(key: s.pageKey, child: const WorkerHomeScreen())),
           GoRoute(path: Routes.workerCapture, pageBuilder: (c, s) => sharedAxisPage(key: s.pageKey, child: const CaptureScreen())),
           GoRoute(path: Routes.workerHazard, pageBuilder: (c, s) => sharedAxisPage(key: s.pageKey, child: const HazardReportScreen())),
-          GoRoute(path: Routes.workerSos, pageBuilder: (c, s) => fadeThroughPage(key: s.pageKey, child: SosScreen(evacOnly: s.uri.queryParameters['mode'] == 'evac'))),
+          GoRoute(
+            path: Routes.workerSos,
+            // A real SOS is only sent when the button opened this page (extra == true). A reload, back/forward or typed link never sends one.
+            redirect: (c, s) => s.uri.queryParameters['mode'] == 'evac' || s.extra == true ? null : Routes.worker,
+            pageBuilder: (c, s) => fadeThroughPage(key: s.pageKey, child: SosScreen(evacOnly: s.uri.queryParameters['mode'] == 'evac'))),
           GoRoute(path: Routes.supervisor, pageBuilder: (c, s) => fadeThroughPage(key: s.pageKey, child: const SupervisorHomeScreen())),
           GoRoute(path: Routes.supervisorHazard, pageBuilder: (c, s) => sharedAxisPage(key: s.pageKey, child: HazardDetailScreen(hazardId: s.pathParameters['hazardId']!, initial: s.extra is HazardFeed ? s.extra as HazardFeed : null))),
           GoRoute(path: Routes.admin, pageBuilder: (c, s) => fadeThroughPage(key: s.pageKey, child: const AdminHomeScreen())),

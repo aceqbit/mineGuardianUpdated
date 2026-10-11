@@ -219,7 +219,9 @@ class CrisisBloc extends Bloc<CrisisEvent, CrisisState> {
     try {
       final d = await _repo.active();
       if (!d.active) return;
-      emit(_applyActive(d, activate: state.phase != CrisisPhase.active));
+      // A crisis found at start-up or login shows the banner only. Forced navigation, siren and flash are for a crisis
+      // that activates live (socket), otherwise every login would bounce the user to the evacuation screen.
+      emit(_applyActive(d, activate: false));
     } on ApiException {
       // not signed in yet or offline: the socket will tell us
     }

@@ -70,11 +70,12 @@ class _SosButtonState extends State<SosButton> with TickerProviderStateMixin {
       button: true,
       label: 'Hold for 2 seconds to send SOS',
       excludeSemantics: true,
-      child: GestureDetector(
-        onTapDown: (_) => _start(),
-        onTapUp: (_) => _cancel(),
-        onTapCancel: _cancel,
-        onLongPressEnd: (_) => _cancel(),
+      // Raw pointer events: tap + long-press recognizers would cancel the hold at ~500 ms (the long press wins the arena).
+      child: Listener(
+        behavior: HitTestBehavior.opaque,
+        onPointerDown: (_) => _start(),
+        onPointerUp: (_) => _cancel(),
+        onPointerCancel: (_) => _cancel(),
         child: AnimatedBuilder(
           animation: Listenable.merge([_hold, _shake]),
           builder: (context, _) {

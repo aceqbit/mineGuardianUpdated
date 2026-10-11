@@ -52,13 +52,14 @@ class _HoldToConfirmState extends State<HoldToConfirm> with SingleTickerProvider
       button: true,
       label: '${widget.label}. Press and hold for ${widget.holdFor.inSeconds} seconds',
       excludeSemantics: true,
-      child: GestureDetector(
-        onTapDown: (_) {
+      child: Listener(
+        behavior: HitTestBehavior.opaque,
+        onPointerDown: (_) {
           HapticFeedback.lightImpact();
           _c.forward(from: 0);
         },
-        onTapUp: (_) => _release(),
-        onTapCancel: _release,
+        onPointerUp: (_) => _release(),
+        onPointerCancel: (_) => _release(),
         child: AnimatedBuilder(
           animation: _c,
           builder: (context, _) => ClipRRect(
