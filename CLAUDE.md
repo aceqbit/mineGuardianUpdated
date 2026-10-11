@@ -129,9 +129,9 @@ Other string sets: review status `PENDING_REVIEW | DECIDED`; layout tunnel `airw
 
 ### 5.2 Mongo collections (model → collection)
 
-`User→users`, `Zone→zones`, `MineLayout→layouts`, `CheckIn→check_ins`, `ComplianceReview→compliance_reviews`, `Hazard→hazards`, `SosEvent→sos_events`, `AuditLog→audit_logs`, and Phase 2: `crises`, `crisis_reports`, `gps_pings`, `broadcasts`, `broadcast_replies`, `score_snapshots`, `rewards`, `reports`, `emergency_contacts`.
+`User→users`, `Zone→zones`, `MineLayout→layouts`, `CheckIn→check_ins`, `ComplianceReview→compliance_reviews`, `Hazard→hazards`, `SosEvent→sos_events`, `AuditLog→audit_logs`, and Phase 2: `crises`, `crisis_reports`, `gps_pings`, `broadcasts`, `broadcast_replies`, `score_snapshots`, `rewards`, `reports`, `emergency_contacts`, `otp_codes`.
 
-Key rules: `timestamps: true`; `toJSON` adds `id` virtual and removes `__v`. Unique indexes: users (`firebaseUid`, `phone.e164`, `employeeId` uppercased+trimmed, `loginEmail` lowercased), zones `code`, check_ins/hazards/sos_events `clientId`, compliance_reviews `checkInId`. 2dsphere on zones `polygon`, check_ins/hazards `location`. Phase 1 writes check_ins/hazards/sos_events (Phase 2 only sets status/`reviewId`/`hazard.ai`/`crisisId`). Audit log is written **only** through `core/audit.js`.
+Key rules: `timestamps: true`; `toJSON` adds `id` virtual and removes `__v`. Unique indexes: users (`firebaseUid`, `email` lowercased, `employeeId` uppercased+trimmed; `phone.e164` is an optional contact number, not unique and not an identity), zones `code`, check_ins/hazards/sos_events `clientId`, compliance_reviews `checkInId`. 2dsphere on zones `polygon`, check_ins/hazards `location`. Phase 1 writes check_ins/hazards/sos_events (Phase 2 only sets status/`reviewId`/`hazard.ai`/`crisisId`). Audit log is written **only** through `core/audit.js`.
 
 ### 5.3 REST (`/api`, JSON, `Authorization: Bearer <Firebase ID token>`)
 
@@ -141,6 +141,7 @@ Errors always: `{ "error": { "code": "UPPER_SNAKE", "message": "...", "details":
 |---|---|
 | 1 | `GET /api/health` (public) · `POST /api/auth/signup` (token only) · `GET /api/auth/me?expectedRole=` · `PUT /api/users/me/fcm-token` · `GET /api/zones` (public) · `GET /api/zones/:id` · `GET /api/layout` (ETag=version, 304) · `PUT /api/zones/:id/supervisors` (admin) · `PUT /api/zones/:id/evac-exit` (admin, additive: `{exitId|null}`, 400 `INVALID_EXIT`) · `POST /api/checkins` (miner, multipart) · `GET /api/checkins/mine?limit` · `GET /api/checkins/:id` · `POST /api/hazards` · `GET /api/hazards?zoneId&status&limit` · `PATCH /api/hazards/:id` · `POST /api/sos` · `POST /api/sos/:id/cancel` · `GET /api/feed/supervisor?zoneId` · `GET /api/admin/supervisors` · `GET /api/admin/overview` |
 | 2 | `GET /api/compliance/reviews/by-checkin/:checkInId` · `POST /api/compliance/reviews/:id/decision` · `GET /api/compliance/reviews/:id/report-url` · `POST /api/ai/analyze/checkin/:checkInId` · `GET /api/ai/health` · `GET /api/leaderboard?period=month|all&zoneId` · `GET /api/leaderboard/me` · `GET /api/leaderboard/supervisors` · `GET /api/scores/zone/:zoneId` · `GET /api/rewards?month=` · `POST /api/rewards/publish?month=` · `GET /api/admin/{sla,hazard-audit,reports}` · `GET /api/admin/reports/:id/url` · `POST /api/admin/{reports/generate,compensation/:reviewId,escalations/:reviewId/ack}` · `GET /api/crisis/active` · `POST /api/crisis/activate` · `POST /api/crisis/:id/resolve` · `GET /api/crisis/:id/routes` · `POST /api/crisis/:id/recompute` · `PATCH /api/crisis/:id/edges/:edgeId` · `POST /api/crisis/:id/assign-route` · `POST /api/crisis/:id/accounted` · `GET /api/crisis/:id/report` · `POST /api/broadcasts` · `GET /api/broadcasts?since=ISO` · `GET /api/contacts` · `POST /api/contacts/:id/call` · `POST /api/contacts/:id/sms` · `POST /api/contacts/notify-all` · `GET /public/track/:token` (no auth) |
+| additive (OTP) | `POST /api/auth/otp/send` (signed-in Firebase identity, no profile needed; no body, the code goes to the token's email) · `POST /api/auth/otp/verify {code}` — errors `OTP_COOLDOWN`/`OTP_LIMIT` (429, `details.retryAfterSec`), `OTP_NOT_CONFIGURED` 503, `OTP_SEND_FAILED` 502, `CODE_EXPIRED`, `WRONG_CODE` (`details.attemptsLeft`), `TOO_MANY_ATTEMPTS`; `POST /api/auth/signup` takes `email` (no phone) and returns 403 `EMAIL_NOT_VERIFIED` unless it was verified |
 | dev only | `POST /dev/emit`, `POST /dev/bus` — only when `NODE_ENV=development` |
 
 Auth errors: missing/invalid token → 401 `UNAUTHENTICATED`; no Mongo user → 403 `USER_NOT_REGISTERED`; inactive → 403 `ACCOUNT_INACTIVE`; wrong role → 403 `FORBIDDEN_ROLE`; `expectedRole` mismatch → 403 `ROLE_MISMATCH` with `details.actualRole`. `GET /api/zones` returns both `_id` and `id`.
@@ -181,7 +182,7 @@ Switches: `DEV_AUTH_BYPASS=false`, `DEMO_FAST_MODE=false` (divides `SLA_MINUTES`
 Location: `DEMO_ANCHOR_LAT=23.7460`, `DEMO_ANCHOR_LNG=86.4150`.
 AI: `GEMINI_API_KEY`, `GEMINI_MODEL=gemini-3.8-flash`, `GEMINI_FALLBACK_MODEL=gemini-3.5-flash`, `ML_MODE=hybrid|gemini_only|yolo_only|mock`. **Model ids are unverified — check Google's model list; if retired, change only the env value, never code.**
 YOLO: `YOLO_PROVIDER=roboflow|onnx|none`, `ROBOFLOW_API_KEY`, `ROBOFLOW_MODEL=personal-protective-equipment-combined-model/8` (unverified), `ONNX_MODEL_PATH=./models/ppe-yolov8n.onnx`, `ONNX_CLASSES`.
-Twilio: `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER`, `TWILIO_DRY_RUN=true`. SLA: `SLA_MINUTES=30`, `SLA_REMINDER_BASE_MINUTES=5`.
+Twilio: `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER`, `TWILIO_DRY_RUN=true`, `OTP_REQUIRED=true` (sign-up needs a verified email code), `GMAIL_USER`, `GMAIL_APP_PASSWORD`, `TWILIO_CALL_ALLOWLIST` (comma-separated E.164; when `TWILIO_DRY_RUN=false` the server only calls/texts these numbers, an empty list dials nobody). SLA: `SLA_MINUTES=30`, `SLA_REMINDER_BASE_MINUTES=5`.
 Flutter: `--dart-define=API_BASE_URL=http://<host>:4000` (default `http://10.0.2.2:4000`). Dev tool only: `FIREBASE_WEB_API_KEY` (read from shell by `dev/get-token.js`, not part of `env.js`).
 
 ## 6. Backend rules
@@ -190,7 +191,7 @@ Flutter: `--dart-define=API_BASE_URL=http://<host>:4000` (default `http://10.0.2
 - `env.js` parses exactly the contract's vars with zod (numbers coerced, booleans from `"true"/"false"`), exports a **frozen** `env`.
 - **Validate every body, query and params with zod via `core/validate.js`.** Errors use the standard JSON shape through `errors.js`: `AppError(status, code, message, details)`; ZodError → 400 `VALIDATION_ERROR`; Mongo 11000 → 409 `DUPLICATE`; multer → 400 `UPLOAD_ERROR`; anything else → 500 `INTERNAL` (stack logged, never leaked); unknown path → 404 `NOT_FOUND`.
 - **Audit every state change** via `core/audit.js` (never throws).
-- **Never log tokens, passwords or full phone numbers.** Use `maskPhone(e164)` → `+91******0101`.
+- **Never log tokens, passwords, one-time codes, full emails or full phone numbers.** Use `maskEmail` (`a***@gmail.com`) and `maskPhone(e164)` → `+91******0101`.
 - Role checks run on the **server** (`requireRole`), supervisors are scoped to their own zone (a Zone A supervisor must never read Zone B data).
 - Dev bypass `x-dev-user-id` works only with `NODE_ENV=development` **and** `DEV_AUTH_BYPASS=true`; log a startup warning. `/dev/emit` and `/dev/bus` exist only in development.
 - Limits: 30 req/min/IP on `/api/auth/*`; 10 req/min/user on check-in upload; JSON body ≤ 1 MB; uploads ≤ 8 MB; helmet + CORS on. Server listens on `0.0.0.0:PORT`; graceful shutdown on SIGINT/SIGTERM.
@@ -207,7 +208,7 @@ Flutter: `--dart-define=API_BASE_URL=http://<host>:4000` (default `http://10.0.2
 - **Upload checks (in order):** idempotency → magic bytes (JPEG `FFD8FF` / PNG `89504E47`, else 400 `UNSUPPORTED_IMAGE`) → sha256 must match field (400 `HASH_MISMATCH`; same worker+sha → 409 `DUPLICATE_PHOTO`) → quality → integrity flags → Storage → create → audit/bus/socket → 201.
 - **Integrity flags:** `STALE_PHOTO` (upload/queue time − capturedAt > 15 min), `OFFLINE_DELAYED` (receivedAt − queuedAt > 2 min), `CLOCK_SKEW` (|receivedAt − uploadStartedAt| > 300 s; store signed `clockSkewSec`), `LOW_GPS_ACCURACY` (accuracy > 100 or no location), `OUTSIDE_ZONE` (422 if `GEOFENCE_ENFORCE`), `OUT_OF_SHIFT` (outside shift window ±30 min IST, shift C wraps midnight; 422 if `SHIFT_WINDOW_ENFORCE`), `GALLERY_SOURCE`, `NO_EXIF`.
 - **Hazard transitions:** OPEN→ACKNOWLEDGED; OPEN|ACKNOWLEDGED→CLOSED (note ≥ 5 chars); OPEN|ACKNOWLEDGED→REJECTED (note required); else 409 `INVALID_TRANSITION`.
-- **Sign-up** (`POST /api/auth/signup`, role miner|supervisor only; admins never self-register): validate phone with `libphonenumber-js/max` (MOBILE or FIXED_LINE_OR_MOBILE, country == isoCode); `req.firebase.email` must equal `loginEmailFor(e164)` else 400 `PHONE_TOKEN_MISMATCH`; 409 `ALREADY_REGISTERED` / `DUPLICATE`; supervisors `$addToSet` into `zone.supervisorIds`; set custom claim `{role}`; audit `USER_SIGNUP`.
+- **Sign-up** (`POST /api/auth/signup`, role miner|supervisor only; admins never self-register): the body has `email` (no phone, no emergency contact); `req.firebase.email` must equal it else 400 `EMAIL_TOKEN_MISMATCH`; that email must have been verified (`EMAIL_NOT_VERIFIED` otherwise); 409 `ALREADY_REGISTERED` / `DUPLICATE`; supervisors `$addToSet` into `zone.supervisorIds`; the `{role}` custom claim is best-effort (the role is authoritative in Mongo, no service account is needed); audit `USER_SIGNUP`. The login identity is the real email: there is no phone-derived hidden email any more.
 - **Seed:** idempotent; `--reset` wipes users, zones, layouts, check_ins, hazards, sos_events, compliance_reviews, audit_logs. Layout validation: connected graph, every junction reaches ≥ 2 distinct exits, every zone has ≥ 3 junctions.
 
 ## 7. Flutter rules
@@ -220,6 +221,12 @@ Flutter: `--dart-define=API_BASE_URL=http://<host>:4000` (default `http://10.0.2
 - `SocketService`: websocket transport, reconnect with a **fresh** token each time, `connection$`, `on(event)` (envelope-id dedupe), `emit`.
 - Router: go_router bound to `SessionBloc`; unauthenticated users see only `/login`, `/signup`; wrong role → own home; every page wrapped by `GlobalOverlays` via a ShellRoute.
 - Every enum has `wire` + `fromWire` (throws on unknown).
+
+### 7.0 Supervisor home
+- **Two different pages on every screen size:** Live Feed (hero with a drawn illustration, quick-action row, KPI tiles with icon badges, zone pulse, filtered feed) and Workers (search, filter chips with counts, worker cards with avatar status ring, risk band and latest check-in photo; tap opens a detail sheet with the photo and today's check-ins, no extra route). Never render both in one layout.
+- **Photos:** always through `NetPhoto` (`app/ui/net_photo.dart`): skeleton while loading, quiet icon on failure, cache key = the stored file (`photoCacheKey`) so a loaded photo survives its 15-minute signed link; tap a check-in photo for the full-screen viewer. The backend serves `/files/*` with `Cross-Origin-Resource-Policy: cross-origin` (helmet's default blocks the web app on another origin from showing any photo).
+- `GET /api/feed/supervisor` workers carry `today{status, verdict, finalVerdict, checkInId, capturedAt, thumbUrl, count}`. A supervisor only sees their own zone; an admin reassigning supervisors changes who sees which miner's photos.
+- Images are illustrations drawn in code (`TileArt`) plus the real check-in photos; no stock photos (network images rendered black in Chrome) and no asset files.
 
 ### 7.1 UI rules
 
@@ -234,10 +241,11 @@ Flutter: `--dart-define=API_BASE_URL=http://<host>:4000` (default `http://10.0.2
 ### 7.2 Form / login rules (client mandates)
 
 - **No pre-filled values anywhere. No default "+91".** No auto-fill from cache. No random/cached values. No timers that reset or regenerate input (no `Timer` in `features/auth`). Controllers created once in `initState`, disposed; form text lives in controllers, never in bloc state. `MgTextField` never autofills.
-- Country code = separate animated picker; phone number = separate field. Phone validation order: no country → empty → digits only → leading 0 → India (10 digits, starts 6–9) → `PhoneNumber.parse().isValid(mobile)` → ok (e164 + formatted).
+- **Email only.** Login and sign-up use an email address + password (`features/auth/data/email_validator.dart`: trimmed, lower-case, one `@`, a dot in the domain, ≤ 120 chars). There is no phone number, country picker or phone field anywhere in login or sign-up. Every app start begins at the login screen (an old Firebase session is signed out at start), and every login needs the emailed code.
 - Password: **exactly 6 chars**, ≥ 1 letter, ≥ 1 digit, no whitespace; four live rule chips.
-- No "Secure login" wording anywhere. Users never see the hidden email (`<digits>@phone.mineguardian.app`) — error messages never mention email.
+- No "Secure login" wording anywhere. The emailed code is sent to the address typed at login (the signed-in identity), never to a stored default.
 - No demo credentials in `lib/`. No dev routes in release builds.
+- **OTP (core, no exceptions):** every login and sign-up needs a 6-digit code, and the code only ever travels by **email** (free: Gmail SMTP through `nodemailer`, an approved addition to the locked Node list; `core/mailer.js`). It is never returned by the API, shown on screen, stored in clear or logged. The backend generates it (`crypto.randomInt`), stores only its SHA-256 hash in `otp_codes` (TTL 5 min, 5 tries, 30 s resend cooldown, 5 sends/hour) and mails it **to the signed-in login email** (the Firebase token's email, so it is the address the user typed; no request body, no stored default). Sign-up creates the profile only if that same email was verified in the last 10 minutes (`EMAIL_NOT_VERIFIED`). Without `GMAIL_USER`/`GMAIL_APP_PASSWORD`, `/otp/send` returns 503 `OTP_NOT_CONFIGURED` and nobody can log in or sign up (no on-screen fallback, no demo mode, no SMS). Known limit: login re-verification is enforced by the app; other `/api` routes still accept a password-only token.
 - Sign-up: create Firebase user first, then `POST /signup`; **on any failure delete the just-created Firebase user** (no orphans) and jump to the step holding the error.
 
 ## 8. Offline design (P1.7 / P1.9)
@@ -295,6 +303,8 @@ Order: read EXIF → resolution (min side ≥ 720) → lighting on 256 px gray (
 - **Blast first, persist after:** immediately `emitTo(['*'], 'crisis:activated')` + bus `CrisisActivated`; then `Promise.allSettled` (never blocking) Twilio calls + SMS (with `${PUBLIC_BASE_URL}/public/track/${shareToken}`) + FCM to zone supervisors and all admins; then ask the rerouter if its module exists. `shareToken` = 24 URL-safe random chars.
 - GPS: bus `GpsUpdated` → in-memory positions → `crisis:positions` throttled 2 s; buffered `GpsPing`s flushed `insertMany` every 15 s and on resolve; timeline writes batched every 5 s; memory is authoritative during the crisis. Moves > 10 m → debounced (3 s) recompute.
 - `SosCancelled` marks that worker SAFE. Accounted updates: `POST /crisis/:id/accounted` (supervisor of zone or admin).
+- Crisis activation starts the blast (Twilio calls + SMS + FCM to zone supervisors and admins) **before** `Crisis.create`, so a slow database never delays the calls. Live calls are limited to `TWILIO_CALL_ALLOWLIST`.
+- **Start-up/login with a crisis already ACTIVE** shows the banner only: forced navigation, siren and flash fire only for a crisis that activates live over the socket (`activationSeq`).
 - **Resolve** (admin): `{falseAlarm, note ≥ 10, checklist{allAccounted, hazardsContained}}`; unless false alarm both must be true else 400 `CHECKLIST_INCOMPLETE`. Flush writes, mark RESOLVED, resolve linked ACTIVE SOS, invalidate `shareToken` (public page → 404 "This tracking link has expired"), emit `crisis:resolved` to all, publish `CrisisResolved`, build CrisisReport + PDF `crisis/<id>/report.pdf`, audit `CRISIS_RESOLVED`.
 - Public tracking page: tiny self-contained HTML, inline CSS, no external scripts, meta refresh 10 s.
 - Unstated roles (safe defaults — see gap list): `GET /crisis/:id/routes` and `/report` → zone supervisors + admins; `POST /recompute` → admin only.
@@ -305,7 +315,7 @@ Order: read EXIF → resolution (min side ≥ 720) → lighting on 256 px gray (
 
 ## 14. SOS (P1.9)
 
-Hold 2 s (ring fill, haptic tick every 0.5 s, early release cancels with shake; semantics "Hold for 2 seconds to send SOS"). `mode=sos` sends; `mode=evac` sends nothing and is titled "EVACUATION ACTIVE". On open: `clientId`, last-known location then refine, `POST /api/sos` (offline → outbox priority 0 "Saved offline — retrying"); `gps:update` every 10 s while ACTIVE (outbox `gps` offline); `PopScope canPop:false`; actions: Call supervisor (`tel:`), Share location by SMS (`sms:` works without internet), First aid (7 guides as Dart constants), I'm safe (2 s hold + confirm → cancel). Server texts zone supervisors immediately, audits `SOS_TRIGGERED`, publishes `SosTriggered`, emits `sos:triggered`. Control-room route (`crisis:routes` filtered to self, `crisis:route_assigned`) draws thick green; offline route stays as fallback.
+Hold 2 s (ring fill, haptic tick every 0.5 s, early release cancels with shake; semantics "Hold for 2 seconds to send SOS"). `mode=sos` sends; `mode=evac` sends nothing and is titled "EVACUATION ACTIVE". On open: `clientId`, last-known location then refine, `POST /api/sos` (offline → outbox priority 0 "Saved offline — retrying"); `gps:update` every 10 s while ACTIVE (outbox `gps` offline); the evacuation map's base layer is Google (Map Tiles API session through `core/maps/google_tiles.dart`, key via `--dart-define=GOOGLE_MAPS_API_KEY`, never committed; no OSM) inside `flutter_map`; with no key it draws the layout on a plain background. The worker can pin the start (long-press the map; default is the live GPS position) and choose the end (any exit or refuge) in the Start/End sheet: `EvacGraph.routesBetween` returns up to 4 different shortest routes (tunnels already used get costlier, ≤ 70% overlap), selected by `EvacRoute.key`; with no chosen end the default is one route per exit. Live tracking follows the real GPS position either way. `PopScope canPop:false`; a real SOS is sent only when the SOS button opened the page (`extra == true`); a reload, back/forward or typed `/worker/sos` redirects home (`?mode=evac` is the only other allowed entry); the SOS and hold-to-confirm buttons use raw pointer events (`Listener`), never tap + long-press recognizers (the long press cancels the hold at ~500 ms); actions: Call supervisor (`tel:`), Share location by SMS (`sms:` works without internet), First aid (7 guides as Dart constants), I'm safe (2 s hold + confirm → cancel). Server texts zone supervisors immediately, audits `SOS_TRIGGERED`, publishes `SosTriggered`, emits `sos:triggered`. Control-room route (`crisis:routes` filtered to self, `crisis:route_assigned`) draws thick green; offline route stays as fallback.
 
 ## 15. Testing & verification commands
 
@@ -333,15 +343,17 @@ flutter run --dart-define=API_BASE_URL=http://<LAN-IP>:4000     # phone
 flutter build apk --release --dart-define=API_BASE_URL=http://<LAN-IP>:4000
 ```
 
-Tests that must exist: bus isolation/unknown-event rejection; geo (1° lat ≈ 111 km ±0.5%, point-in-polygon); layout (≥ 30 tunnels, 3 exits, 1 refuge, 3 zones, connected, ≥ 2 exits per junction); auth schemas; checkin integrity (stale, offline-delayed, clock skew, shift C 22:30/05:30 inside & 14:00 outside, outside zone); hazard transition matrix; AI guardrails/fusion/YOLO parse; compliance decision rules; scoring formula (perfect worker = 1000, frozen days, Sunday skipped, H clamps); SLA schedule (0/5/15/35 with base 5; no resend after restart); crisis merge/resolve/SosCancelled; rerouter (reaches exit, ≤ 70% overlap, blocked edge changes rank 1, CRITICAL hazard removes edges ≤ 15 m, FIRE_SMOKE prefers intake, A* == Dijkstra on 50 random pairs); contacts blocklist; Flutter `phone_validator`, `password_rules`, `image_metrics`, `sync_engine`, `evac_graph`.
+Tests that must exist: bus isolation/unknown-event rejection; geo (1° lat ≈ 111 km ±0.5%, point-in-polygon); layout (≥ 30 tunnels, 3 exits, 1 refuge, 3 zones, connected, ≥ 2 exits per junction); auth schemas; checkin integrity (stale, offline-delayed, clock skew, shift C 22:30/05:30 inside & 14:00 outside, outside zone); hazard transition matrix; AI guardrails/fusion/YOLO parse; compliance decision rules; scoring formula (perfect worker = 1000, frozen days, Sunday skipped, H clamps); SLA schedule (0/5/15/35 with base 5; no resend after restart); crisis merge/resolve/SosCancelled; rerouter (reaches exit, ≤ 70% overlap, blocked edge changes rank 1, CRITICAL hazard removes edges ≤ 15 m, FIRE_SMOKE prefers intake, A* == Dijkstra on 50 random pairs); contacts blocklist; Flutter `email_validator`, `password_rules`, `image_metrics`, `sync_engine`, `evac_graph`.
 
 ## 16. Demo accounts (seed `MG Demo Colliery`, 3 zones, 16 users)
 
-| Role | Phone (India +91) | Password |
-|---|---|---|
-| Admin | 9876500001 | Admin1 |
-| Supervisors | Z-A 9876500011 · Z-B 9876500012 · Z-C 9876500013 | Super1 |
-| Miners | 9876500101–104 (Z-A), 105–108 (Z-B), 109–112 (Z-C) | Miner1 |
+| Role | Employee ID | Email (`SEED_EMAIL=you@gmail.com`) | Password |
+|---|---|---|---|
+| Admin | ADM-0001 | you+adm-0001@gmail.com | Admin1 |
+| Supervisors | SUP-0011 (Z-A) · SUP-0012 (Z-B) · SUP-0013 (Z-C) | you+sup-0011@gmail.com … | Super1 |
+| Miners | MIN-0101–0104 (Z-A), 0105–0108 (Z-B), 0109–0112 (Z-C) | you+min-0105@gmail.com … | Miner1 |
+
+Login is by email; every plus-address lands in your one inbox, so each demo login receives its code there. `npm run seed` needs no service account (`seed/identity.js` uses the Firebase REST API); `npm run seed:layout` saves only the layout and zones.
 
 Zones: Z-A West Panel (HELMET, CAP_LAMP, REFLECTIVE_VEST, SAFETY_BOOTS, GLOVES, SELF_RESCUER) · Z-B Central Panel, the demo zone (HELMET, REFLECTIVE_VEST, SAFETY_BOOTS, GLOVES) · Z-C East Panel (Z-A set + DUST_MASK, EAR_PROTECTION, EYE_PROTECTION). Employee IDs ADM-0001, SUP-0011…, MIN-0101…. These credentials are **seed/dev data only** — never put them in `mobile/lib/`.
 
@@ -375,6 +387,10 @@ Dropped on purpose: miner tick-box checklist (moved to supervisor), 4-digit PIN 
 - Take/label 30 eval photos (P2.0) and 6 adversarial photos; add `worker_full_body.jpg`, `hazard_cable.jpg` to `backend/seed/sample/`.
 - Blur calibration with real phone photos (P1.5 and P1.6).
 - Real-phone checks: camera/ML Kit, airplane-mode outbox, SOS offline, SMS share, siren, Twilio verified numbers.
+- Put the Firebase service account at `backend/secrets/firebase-sa.json` (optional for login, sign-up and OTP: without it the backend starts credential-less, verifies ID tokens from the project id alone and skips the custom claim; it is still needed for `seed`, Firebase Storage and FCM). Keep the PC clock synced (`w32tm /resync`). For real OTP SMS: Twilio credentials, `TWILIO_DRY_RUN=false`, destination numbers verified in the Twilio trial console.
+- `npm run check:setup` (backend/) tests the Gmail login, Twilio credentials (SOS calls), allowlisted numbers, From number, India voice permission and (with `GOOGLE_MAPS_API_KEY` exported) the Google Map Tiles key; prints PASS/FAIL/TODO and no secrets. Twilio trial accounts only reach numbers verified in the console (max 5). Google Map Tiles API needs a billing-enabled project.
+- Demo accounts: `SEED_EMAIL=you@gmail.com npm run seed` (see §16). One-time move of an old phone-login database: `node dev/migrate-email-identity.js`.
+- Sample account: `node dev/create-sample-user.js you@gmail.com '<6 chars>'` after `npm run seed:layout` (no service account needed).
 - Create `contacts.local.json` from the example with team-verified numbers.
 
 ## 20. Known gaps in the source spec (defaults to apply, mention in step report)
