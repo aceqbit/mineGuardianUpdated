@@ -48,7 +48,8 @@ async function blast(crisis) {
   const trackUrl = `${env.PUBLIC_BASE_URL}/public/track/${crisis.shareToken}`;
   const { voice, sms } = crisisTexts({ reason: crisis.reason, zoneCodes: zones.map((z) => z.code), trackUrl });
   const results = await Promise.allSettled([
-    ...people.flatMap((p) => [makeCall(p.phone?.e164, voice), sendSms(p.phone?.e164, sms)]),
+    // Calls and texts need an optional contact number; everyone is still reached by push and the app.
+    ...people.filter((p) => p.phone?.e164).flatMap((p) => [makeCall(p.phone.e164, voice), sendSms(p.phone.e164, sms)]),
     sendToUsers(people.map((p) => String(p._id)), { title: 'EMERGENCY — crisis mode', body: crisis.reason || 'A crisis has been declared', data: { type: 'crisis', crisisId: String(crisis._id) } }),
   ]);
   logger.info(`crisis blast: ${results.filter((r) => r.status === 'fulfilled').length}/${results.length} legs settled`);
@@ -95,11 +96,11 @@ export async function activate({ trigger, zoneIds, reason = '', actor = null, so
     // 1. blast first: every connected client hears about it before anything touches the database
     emitTo(['*'], 'crisis:activated', publicView(crisis));
     bus.publish('CrisisActivated', { crisisId: String(_id), zoneIds: crisis.zoneIds });
-    // 2. persist after
+    // 2. notifications (calls, SMS, push) start before anything touches the database and never block it
+    blast(crisis).catch((err) => logger.warn({ err: err.message }, 'crisis blast failed'));
+    // 3. persist after
     await Crisis.create(crisis);
     audit(actor, 'CRISIS_ACTIVATED', 'crisis', _id, { trigger: trigger.type }).catch(() => null);
-    // 3. notifications never block
-    blast(crisis).catch((err) => logger.warn({ err: err.message }, 'crisis blast failed'));
     // 4. routes, if the rerouter exists
     recompute('activation').catch(() => null);
     return crisis;

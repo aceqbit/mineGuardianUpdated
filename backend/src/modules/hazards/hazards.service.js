@@ -113,7 +113,7 @@ export async function createHazard({ user, file, body }) {
   const text = hazardSmsText({ category: body.category, zoneCode: zone.code, reporterName: user.fullName, at: hazard.receivedAt, lat: body.lat, lng: body.lng });
   User.find({ _id: { $in: zone.supervisorIds }, status: 'active' })
     .select('phone.e164')
-    .then((sups) => Promise.allSettled(sups.map((s) => sendSms(s.phone.e164, text))))
+    .then((sups) => Promise.allSettled(sups.filter((s) => s.phone?.e164).map((s) => sendSms(s.phone.e164, text))))
     .catch((err) => logger.warn({ err: err.message }, `hazard SMS failed for zone ${zone.code} (${maskPhone('')})`));
 
   await audit(user, 'HAZARD_REPORTED', 'hazard', hazard._id, { category: body.category, zone: zone.code });

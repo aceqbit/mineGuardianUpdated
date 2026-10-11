@@ -63,7 +63,7 @@ export async function createSos({ user, body }) {
   const text = sosSmsText({ name: user.fullName, zoneCode: zone.code, at: triggeredAt, lat: body.lat, lng: body.lng });
   User.find({ _id: { $in: zone.supervisorIds }, status: 'active' })
     .select('phone.e164')
-    .then((sups) => Promise.allSettled(sups.map((s) => sendSms(s.phone.e164, text))))
+    .then((sups) => Promise.allSettled(sups.filter((s) => s.phone?.e164).map((s) => sendSms(s.phone.e164, text))))
     .catch((err) => logger.warn({ err: err.message }, 'SOS SMS failed'));
 
   await audit(user, 'SOS_TRIGGERED', 'sos', sos._id, { zone: zone.code });

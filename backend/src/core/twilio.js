@@ -9,6 +9,10 @@ const hasCreds = () => Boolean(env.TWILIO_ACCOUNT_SID && env.TWILIO_AUTH_TOKEN &
 const getClient = () => (client ??= twilioLib(env.TWILIO_ACCOUNT_SID, env.TWILIO_AUTH_TOKEN));
 const dry = () => env.TWILIO_DRY_RUN || !hasCreds();
 
+/** Comma-separated E.164 numbers the server may call or text when TWILIO_DRY_RUN=false. Empty list = nothing may be dialled. */
+export const allowedTargets = () => String(env.TWILIO_CALL_ALLOWLIST || '').split(',').map((s) => s.trim()).filter(Boolean);
+export const targetAllowed = (to, { dryRun, list }) => dryRun || list.includes(to);
+
 const validE164 = (n) => {
   if (typeof n !== 'string' || !/^\+[1-9]\d{6,14}$/.test(n)) return false;
   return Boolean(parsePhoneNumberFromString(n));
@@ -24,6 +28,10 @@ export function buildTwiml(text) {
 export async function sendSms(to, body) {
   try {
     if (!validE164(to)) return { error: 'INVALID_E164' };
+    if (!targetAllowed(to, { dryRun: dry(), list: allowedTargets() })) {
+      logger.warn(`twilio sms refused: ${maskPhone(to)} is not in TWILIO_CALL_ALLOWLIST`);
+      return { error: 'NOT_ALLOWLISTED' };
+    }
     if (dry()) {
       logger.info(`[TWILIO DRY RUN] SMS to ${maskPhone(to)}: ${String(body).slice(0, 120)}`);
       return { sid: `DRYRUN-${uuid()}`, dryRun: true };
@@ -39,6 +47,10 @@ export async function sendSms(to, body) {
 export async function makeCall(to, text) {
   try {
     if (!validE164(to)) return { error: 'INVALID_E164' };
+    if (!targetAllowed(to, { dryRun: dry(), list: allowedTargets() })) {
+      logger.warn(`twilio call refused: ${maskPhone(to)} is not in TWILIO_CALL_ALLOWLIST`);
+      return { error: 'NOT_ALLOWLISTED' };
+    }
     if (dry()) {
       logger.info(`[TWILIO DRY RUN] CALL to ${maskPhone(to)}: ${String(text).slice(0, 120)}`);
       return { sid: `DRYRUN-${uuid()}`, dryRun: true };
