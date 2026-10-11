@@ -129,7 +129,7 @@ async function main() {
       await emit('crisis:activated', ['*'], { crisisId, trigger: { type: 'SOS', refId: 'sim-sos' }, zoneIds: [String(zone._id)], startedAt: nowIso(), headline: `SOS — simulated · ${zoneCode}` });
       console.log('crisis:activated sent');
       const worker = phone
-        ? await col('users').findOne({ 'phone.e164': e164(phone) })
+        ? await col('users').findOne({ email: String(phone).toLowerCase() })
         : await col('users').findOne({ role: 'miner', zoneId: zone._id });
       if (!worker) throw new Error('worker not found');
       const layout = await col('layouts').find().sort({ version: -1 }).limit(1).next();
@@ -156,7 +156,7 @@ async function main() {
       console.log(`crisis:routes sent: ${features.length} routes for ${worker.fullName} from ${start}`);
     } else if (cmd === 'score') {
       const [phone, score] = args;
-      const w = await col('users').findOne({ 'phone.e164': e164(phone) });
+      const w = await col('users').findOne({ email: String(phone).toLowerCase() });
       if (!w) throw new Error('worker not found');
       const s = Number(score);
       await emit('score:updated', [`user:${w._id}`], { workerId: String(w._id), score: s, rank: 3, xp: 1200, streak: 6, riskBand: s >= 700 ? 'GREEN' : s >= 400 ? 'AMBER' : 'RED' });

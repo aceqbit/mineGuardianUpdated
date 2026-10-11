@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';
 import { BASE, api, printTable } from '../lib/common.js';
 import { getToken } from '../get-token.js';
+import { demoEmailFor } from '../../seed/accounts.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const sampleDir = path.join(here, '..', '..', 'seed', 'sample');
@@ -61,14 +62,14 @@ let me = {};
 
 await step('health + AI health (admin)', async () => {
   expect((await api('/api/health')).status === 200, 'health');
-  tokens.admin = await getToken('9876500001', 'Admin1');
+  tokens.admin = await getToken(demoEmailFor('ADM-0001'), 'Admin1');
   const r = await api('/api/ai/health', { token: tokens.admin });
   expect(r.status === 200, `ai health ${r.status}`);
   return `mode=${r.data.mlMode} yolo=${r.data.yoloProvider}`;
 });
 await step('sign in miner + supervisor', async () => {
-  tokens.miner = await getToken('9876500105', 'Miner1');
-  tokens.supervisor = await getToken('9876500012', 'Super1');
+  tokens.miner = await getToken(demoEmailFor('MIN-0105'), 'Miner1');
+  tokens.supervisor = await getToken(demoEmailFor('SUP-0012'), 'Super1');
   me.supervisor = (await api('/api/auth/me', { token: tokens.supervisor })).data;
   me.miner = (await api('/api/auth/me', { token: tokens.miner })).data;
   expect(me.supervisor?.zone?.id && me.miner?.user?.id, 'profiles');

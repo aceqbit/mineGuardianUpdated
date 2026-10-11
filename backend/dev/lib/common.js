@@ -1,7 +1,7 @@
 // Shared helpers for dev scripts (simulators, smoke tests). Not used by the server.
 import 'dotenv/config';
 
-export const BASE = process.env.API_BASE || `http://localhost:${process.env.PORT || 4000}`;
+export const BASE = process.env.API_BASE || `http://127.0.0.1:${process.env.PORT || 4000}`;
 
 export async function emit(event, rooms, data) {
   const res = await fetch(`${BASE}/dev/emit`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ event, rooms, data }) });

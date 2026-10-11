@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';
 import { api, printTable } from './lib/common.js';
 import { getToken } from './get-token.js';
+import { demoEmailFor } from '../seed/accounts.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const sampleDir = path.join(here, '..', 'seed', 'sample');
@@ -67,9 +68,9 @@ await step('health endpoint', async () => {
   expect(r.status === 200 && r.data?.ok, `status ${r.status}`);
 });
 
-for (const [role, phone, pw] of [['miner', '9876500105', 'Miner1'], ['supervisor', '9876500012', 'Super1'], ['admin', '9876500001', 'Admin1']]) {
+for (const [role, empId, pw] of [['miner', 'MIN-0105', 'Miner1'], ['supervisor', 'SUP-0012', 'Super1'], ['admin', 'ADM-0001', 'Admin1']]) {
   await step(`sign in + /me as ${role}`, async () => {
-    tokens[role] = await getToken(phone, pw);
+    tokens[role] = await getToken(demoEmailFor(empId), pw);
     const r = await api(`/api/auth/me?expectedRole=${role}`, { token: tokens[role] });
     expect(r.status === 200 && r.data?.user?.role === role, `status ${r.status} ${JSON.stringify(r.data?.error ?? '')}`);
   });
@@ -130,7 +131,7 @@ await step('supervisor feed contains the check-in, hazard and active SOS', async
 await step('Zone A supervisor cannot read Zone B (403)', async () => {
   const zones = await api('/api/zones');
   const other = zones.data.find((z) => z.code === 'Z-A');
-  const supA = await getToken('9876500011', 'Super1');
+  const supA = await getToken(demoEmailFor('SUP-0011'), 'Super1');
   const meB = await api('/api/auth/me', { token: tokens.supervisor });
   const r = await api(`/api/feed/supervisor?zoneId=${meB.data.zone.id}`, { token: supA });
   expect(r.status === 403, `status ${r.status} (zone ${other?.code})`);

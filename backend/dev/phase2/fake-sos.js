@@ -1,19 +1,19 @@
 // Creates an ACTIVE SosEvent in Mongo and posts SosTriggered (the crisis orchestrator picks it up).
-// Usage: node dev/phase2/fake-sos.js --phone 9876500105
+// Usage: node dev/phase2/fake-sos.js --email you+min-0105@gmail.com
 import crypto from 'node:crypto';
 import { connectMongo, bus } from '../lib/common.js';
 import { argv, pickInsideZone, loadModels } from './_util.js';
 
-const phone = argv('phone');
-if (!phone) {
-  console.error('Usage: node dev/phase2/fake-sos.js --phone 9876500105');
+const email = argv('email');
+if (!email) {
+  console.error('Usage: node dev/phase2/fake-sos.js --email you+min-0105@gmail.com');
   process.exit(1);
 }
 
 const mongoose = await connectMongo();
 try {
   const { User, Zone, SosEvent } = await loadModels();
-  const worker = await User.findOne({ 'phone.e164': `+91${phone}` });
+  const worker = await User.findOne({ email: String(email).toLowerCase() });
   if (!worker) throw new Error('worker not found');
   const zone = await Zone.findById(worker.zoneId);
   const pt = pickInsideZone(zone);

@@ -1,22 +1,22 @@
 // Creates an OPEN hazard in Mongo with a photo in Storage, then posts HazardCreated so the AI classifies it.
-// Usage: node dev/phase2/fake-hazard.js --phone 9876500105 --category FIRE_SMOKE --image <path>
+// Usage: node dev/phase2/fake-hazard.js --email you+min-0105@gmail.com --category FIRE_SMOKE --image <path>
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import { connectMongo, bus } from '../lib/common.js';
 import { argv, pickInsideZone, loadModels } from './_util.js';
 
-const phone = argv('phone');
+const email = argv('email');
 const image = argv('image');
 const category = argv('category', 'OTHER');
-if (!phone || !image || !fs.existsSync(image)) {
-  console.error('Usage: node dev/phase2/fake-hazard.js --phone 9876500105 --category FIRE_SMOKE --image <path>');
+if (!email || !image || !fs.existsSync(image)) {
+  console.error('Usage: node dev/phase2/fake-hazard.js --email you+min-0105@gmail.com --category FIRE_SMOKE --image <path>');
   process.exit(1);
 }
 
 const mongoose = await connectMongo();
 try {
   const { User, Zone, Hazard, uploadBuffer } = await loadModels();
-  const reporter = await User.findOne({ 'phone.e164': `+91${phone}` });
+  const reporter = await User.findOne({ email: String(email).toLowerCase() });
   if (!reporter) throw new Error('reporter not found');
   const zone = await Zone.findById(reporter.zoneId);
   const id = new mongoose.Types.ObjectId();

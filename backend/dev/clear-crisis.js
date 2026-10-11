@@ -3,6 +3,7 @@
 // Usage (from backend/):  node dev/clear-crisis.js
 import 'dotenv/config';
 import mongoose from 'mongoose';
+import { connectDb } from '../src/core/db.js';
 
 if (process.env.NODE_ENV === 'production') {
   console.error('Refusing to run with NODE_ENV=production');
@@ -13,7 +14,7 @@ if (!process.env.MONGODB_URI) {
   process.exit(1);
 }
 
-await mongoose.connect(process.env.MONGODB_URI);
+await connectDb(process.env.MONGODB_URI); // same database name as the server (MONGODB_DB, default mine_guardian)
 const db = mongoose.connection;
 const now = new Date();
 const crises = await db.collection('crises').updateMany({ status: 'ACTIVE' }, { $set: { status: 'RESOLVED', falseAlarm: true, resolvedAt: now, resolveNote: 'Cleared by dev/clear-crisis.js' } });
