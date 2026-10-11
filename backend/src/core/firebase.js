@@ -13,8 +13,13 @@ export function getFirebaseApp() {
   if (fs.existsSync(credPath)) {
     opts.credential = admin.credential.cert(JSON.parse(fs.readFileSync(credPath, 'utf8')));
   } else {
-    logger.warn(`Firebase service account not found at ${credPath}; using application default credentials`);
-    opts.credential = admin.credential.applicationDefault();
+    // Verifying ID tokens only needs the project id (Google's public keys). Admin calls (users, claims, Storage, FCM) then fail with a clear error.
+    logger.warn(`Firebase service account not found at ${credPath}; running without admin credentials (login works, admin calls do not)`);
+    opts.credential = {
+      getAccessToken: async () => {
+        throw new Error('Firebase service account missing: place it at backend/secrets/firebase-sa.json');
+      },
+    };
   }
   app = admin.initializeApp(opts);
   return app;
