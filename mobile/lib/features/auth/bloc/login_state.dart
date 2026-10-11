@@ -4,7 +4,7 @@ import '../../../contracts/enums.dart';
 
 enum LoginStatus { idle, submitting, failure, success }
 
-/// Step 1 is number + password; step 2 is the SMS code. Nothing proceeds without a valid code.
+/// Step 1 is email + password; step 2 is the emailed code. Nothing proceeds without a valid code.
 enum OtpPhase { none, awaitingCode }
 
 /// Wrong codes allowed before the user must log in again.
@@ -15,7 +15,7 @@ const Duration otpResendCooldown = Duration(seconds: 30);
 
 /// Form text lives in widget controllers, never here.
 class LoginState extends Equatable {
-  const LoginState({this.role = Role.miner, this.status = LoginStatus.idle, this.errorMessage, this.mismatchActualRole, this.otp = OtpPhase.none, this.cooldownUntil, this.attemptsLeft = otpMaxAttempts, this.maskedPhone});
+  const LoginState({this.role = Role.miner, this.status = LoginStatus.idle, this.errorMessage, this.mismatchActualRole, this.otp = OtpPhase.none, this.cooldownUntil, this.attemptsLeft = otpMaxAttempts, this.maskedEmail});
   final Role role;
   final LoginStatus status;
   final String? errorMessage;
@@ -23,9 +23,9 @@ class LoginState extends Equatable {
   final OtpPhase otp;
   final DateTime? cooldownUntil;
   final int attemptsLeft;
-  final String? maskedPhone;
+  final String? maskedEmail;
 
-  LoginState copyWith({Role? role, LoginStatus? status, String? errorMessage, Role? mismatchActualRole, OtpPhase? otp, DateTime? cooldownUntil, int? attemptsLeft, String? maskedPhone, bool clearError = false, bool clearMismatch = false}) => LoginState(
+  LoginState copyWith({Role? role, LoginStatus? status, String? errorMessage, Role? mismatchActualRole, OtpPhase? otp, DateTime? cooldownUntil, int? attemptsLeft, String? maskedEmail, bool clearError = false, bool clearMismatch = false}) => LoginState(
         role: role ?? this.role,
         status: status ?? this.status,
         errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
@@ -33,9 +33,9 @@ class LoginState extends Equatable {
         otp: otp ?? this.otp,
         cooldownUntil: cooldownUntil ?? this.cooldownUntil,
         attemptsLeft: attemptsLeft ?? this.attemptsLeft,
-        maskedPhone: maskedPhone ?? this.maskedPhone,
+        maskedEmail: maskedEmail ?? this.maskedEmail,
       );
 
   @override
-  List<Object?> get props => [role, status, errorMessage, mismatchActualRole, otp, cooldownUntil, attemptsLeft, maskedPhone];
+  List<Object?> get props => [role, status, errorMessage, mismatchActualRole, otp, cooldownUntil, attemptsLeft, maskedEmail];
 }

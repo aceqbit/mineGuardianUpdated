@@ -1,6 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
 
-import 'phone_identity.dart';
 
 /// Thrown with a user-safe message. Never mentions "email".
 class AuthFailure implements Exception {
@@ -20,18 +19,18 @@ class AuthRepository {
 
   Future<String?> idToken({bool forceRefresh = false}) async => _auth.currentUser?.getIdToken(forceRefresh);
 
-  Future<void> signIn(String e164, String password) async {
+  Future<void> signIn(String email, String password) async {
     try {
-      await _auth.signInWithEmailAndPassword(email: loginEmailFor(e164), password: password);
+      await _auth.signInWithEmailAndPassword(email: email, password: password);
     } on FirebaseAuthException catch (e) {
       throw _friendly(e);
     }
   }
 
   /// Creates the Firebase identity for sign-up. `email-already-in-use` -> code ALREADY_REGISTERED.
-  Future<void> createAccount(String e164, String password) async {
+  Future<void> createAccount(String email, String password) async {
     try {
-      await _auth.createUserWithEmailAndPassword(email: loginEmailFor(e164), password: password);
+      await _auth.createUserWithEmailAndPassword(email: email, password: password);
     } on FirebaseAuthException catch (e) {
       throw _friendly(e);
     }
@@ -53,14 +52,15 @@ class AuthRepository {
       case 'invalid-credential':
       case 'wrong-password':
       case 'user-not-found':
+        return AuthFailure('INVALID_CREDENTIALS', 'Email or password is incorrect');
       case 'invalid-email':
-        return AuthFailure('INVALID_CREDENTIALS', 'Phone number or password is incorrect');
+        return AuthFailure('INVALID_EMAIL', 'Enter a valid email address');
       case 'too-many-requests':
         return AuthFailure('TOO_MANY_REQUESTS', 'Too many attempts. Please wait a moment and try again');
       case 'network-request-failed':
         return AuthFailure('NETWORK', 'No connection — check your internet');
       case 'email-already-in-use':
-        return AuthFailure('ALREADY_REGISTERED', 'This phone number is already registered — log in instead');
+        return AuthFailure('ALREADY_REGISTERED', 'This email is already registered — log in instead');
       case 'weak-password':
         return AuthFailure('WEAK_PASSWORD', 'Password must be 6 characters with a letter and a digit');
       case 'user-disabled':

@@ -1,5 +1,6 @@
 import '../../../core/api/api_client.dart';
 import '../../../core/auth/auth_repository.dart';
+import 'email_validator.dart';
 import '../../../core/models/session_user.dart';
 
 class ZoneOption {
@@ -22,10 +23,7 @@ class SignupData {
     required this.role,
     required this.fullName,
     required this.employeeId,
-    required this.isoCode,
-    required this.dialCode,
-    required this.national,
-    required this.e164,
+    required this.email,
     required this.password,
     required this.mineName,
     required this.zoneId,
@@ -35,20 +33,12 @@ class SignupData {
     required this.dateOfJoining,
     required this.dob,
     required this.bloodGroup,
-    required this.emergencyName,
-    required this.emergencyRelation,
-    required this.emergencyIso,
-    required this.emergencyDial,
-    required this.emergencyNational,
     this.address,
   });
   final String role;
   final String fullName;
   final String employeeId;
-  final String isoCode;
-  final String dialCode;
-  final String national;
-  final String e164;
+  final String email;
   final String password;
   final String mineName;
   final String zoneId;
@@ -58,18 +48,13 @@ class SignupData {
   final DateTime dateOfJoining;
   final DateTime dob;
   final String bloodGroup;
-  final String emergencyName;
-  final String emergencyRelation;
-  final String emergencyIso;
-  final String emergencyDial;
-  final String emergencyNational;
   final String? address;
 
   Map<String, dynamic> toBody() => {
         'role': role,
         'fullName': fullName.trim(),
         'employeeId': employeeId.trim(),
-        'phone': {'isoCode': isoCode, 'dialCode': dialCode, 'national': national},
+        'email': email.trim().toLowerCase(),
         'designation': designation,
         'experienceYears': experienceYears,
         'dateOfJoining': _d(dateOfJoining),
@@ -78,11 +63,6 @@ class SignupData {
         'mineName': mineName,
         'zoneId': zoneId,
         'shift': shift,
-        'emergencyContact': {
-          'name': emergencyName.trim(),
-          'relation': emergencyRelation,
-          'phone': {'isoCode': emergencyIso, 'dialCode': emergencyDial, 'national': emergencyNational},
-        },
         if (address != null && address!.trim().isNotEmpty) 'address': address!.trim(),
       };
 
@@ -117,7 +97,7 @@ class SignupRepository {
   /// Step 1 of sign-up: the Firebase identity.
   Future<void> createAccount(SignupData d) async {
     try {
-      await _auth.createAccount(d.e164, d.password);
+      await _auth.createAccount(normalizeEmail(d.email), d.password);
     } on AuthFailure catch (f) {
       throw SignupFailure(f.message, step: 0, alreadyRegistered: f.code == 'ALREADY_REGISTERED');
     }
@@ -151,10 +131,10 @@ class SignupRepository {
     } else if (det is List && det.isNotEmpty && det.first is Map) {
       path = ((det.first as Map)['path'] ?? '').toString();
     }
-    if (path.startsWith('emergencyContact') || path == 'dob' || path == 'bloodGroup' || path == 'address') return 2;
+    if (path == 'dob' || path == 'bloodGroup' || path == 'address') return 2;
     if (path.startsWith('zoneId') || path == 'mineName' || path == 'shift' || path == 'designation' || path == 'experienceYears' || path == 'dateOfJoining') return 1;
-    if (path.startsWith('phone') || path == 'employeeId' || path == 'fullName' || path == 'role') return 0;
-    if (e.code == 'PHONE_TOKEN_MISMATCH' || e.code == 'INVALID_PHONE' || e.code == 'DUPLICATE') return 0;
+    if (path == 'email' || path == 'employeeId' || path == 'fullName' || path == 'role') return 0;
+    if (e.code == 'EMAIL_TOKEN_MISMATCH' || e.code == 'EMAIL_NOT_VERIFIED' || e.code == 'DUPLICATE') return 0;
     return 2;
   }
 }

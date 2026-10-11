@@ -21,12 +21,16 @@ class _Auth implements AuthRepository {
   int signIns = 0;
   int created = 0;
   int deleted = 0;
+  String? lastEmail;
   @override
-  Future<void> signIn(String e164, String password) async => signIns++;
+  Future<void> signIn(String email, String password) async {
+    signIns++;
+    lastEmail = email;
+  }
   @override
   Future<void> signOut() async => signOuts++;
   @override
-  Future<void> createAccount(String e164, String password) async => created++;
+  Future<void> createAccount(String email, String password) async => created++;
   @override
   Future<void> deleteCurrentFirebaseUser() async => deleted++;
   @override
@@ -43,25 +47,18 @@ class _Push implements PushRegistrar {
 }
 
 class _Otp implements OtpService {
-  _Otp({this.linked = false});
-  bool linked;
   AuthFailure? sendError;
   AuthFailure? confirmError;
   final String correct = '123456';
   int sends = 0;
-  final purposes = <OtpPurpose>[];
+  final targets = <String>[];
 
   @override
-  bool get phoneLinked => linked;
-  @override
-  OtpPurpose get purpose => linked ? OtpPurpose.reauth : OtpPurpose.link;
-
-  @override
-  Future<OtpSession> send(String e164, {required OtpPurpose purpose, int? resendToken}) async {
+  Future<OtpSession> send(String email) async {
     sends++;
-    purposes.add(purpose);
+    targets.add(email);
     if (sendError != null) throw sendError!;
-    return OtpSession(e164: e164, purpose: purpose, verificationId: 'v', resendToken: 7);
+    return OtpSession(email: email);
   }
 
   @override
@@ -102,9 +99,9 @@ void main() {
     late SessionBloc session;
     late LoginBloc bloc;
 
-    void setUpBloc({bool linked = false, bool gate = true}) {
+    void setUpBloc({bool gate = true}) {
       auth = _Auth();
-      otp = _Otp(linked: linked);
+      otp = _Otp();
       final api = _api();
       session = SessionBloc(auth: auth, api: api);
       bloc = LoginBloc(auth: auth, api: api, session: session, push: _Push(), otp: otp, otpGate: gate);
@@ -115,27 +112,24 @@ void main() {
       return bloc.state;
     }
 
-    const submit = SubmitPressed(isoCode: 'IN', national: '9876500101', password: 'Miner1');
+    const submit = SubmitPressed(email: 'Ravi@Example.com ', password: 'Miner1');
 
     test('password alone never starts the session: a code is sent and step 2 begins', () async {
       setUpBloc();
       bloc.add(submit);
       final s = await settle();
       expect(s.otp, OtpPhase.awaitingCode);
-      expect(s.maskedPhone, '••••0101');
+      expect(s.maskedEmail, 'r***@example.com');
       expect(otp.sends, 1);
       expect(session.state, isNot(isA<SessionAuthenticated>()));
     });
 
-    test('first login links the phone, later logins re-verify it', () async {
+    test('the code goes to the email that was typed (trimmed, lower-case), never to a stored default', () async {
       setUpBloc();
       bloc.add(submit);
       await settle();
-      expect(otp.purposes, [OtpPurpose.link]);
-      setUpBloc(linked: true);
-      bloc.add(submit);
-      await settle();
-      expect(otp.purposes, [OtpPurpose.reauth]);
+      expect(otp.targets, ['ravi@example.com']);
+      expect(auth.lastEmail, 'ravi@example.com');
     });
 
     test('a valid code starts the session', () async {
@@ -236,9 +230,9 @@ void main() {
       expect(otp.sends, 0);
     });
 
-    test('invalid phone never reaches Firebase', () async {
+    test('an invalid email never reaches Firebase', () async {
       setUpBloc();
-      bloc.add(const SubmitPressed(isoCode: 'IN', national: '12345', password: 'Miner1'));
+      bloc.add(const SubmitPressed(email: 'not-an-email', password: 'Miner1'));
       final s = await settle();
       expect(s.status, LoginStatus.failure);
       expect(auth.signIns, 0);
@@ -254,10 +248,7 @@ void main() {
           role: 'miner',
           fullName: 'Asha Devi',
           employeeId: 'MIN-0999',
-          isoCode: 'IN',
-          dialCode: '+91',
-          national: '9876500101',
-          e164: '+919876500101',
+          email: 'asha@example.com',
           password: 'Miner1',
           mineName: 'MG Demo Colliery',
           zoneId: 'z1',
@@ -267,11 +258,6 @@ void main() {
           dateOfJoining: DateTime(2023, 1, 1),
           dob: DateTime(1995, 1, 1),
           bloodGroup: 'O+',
-          emergencyName: 'Ravi',
-          emergencyRelation: 'Brother',
-          emergencyIso: 'IN',
-          emergencyDial: '+91',
-          emergencyNational: '9876500102',
         );
 
     void setUpBloc({bool gate = true}) {
@@ -290,9 +276,9 @@ void main() {
       bloc.add(SignupSubmitted(data()));
       var s = await settle();
       expect(s.status, SignupStatus.verifying);
-      expect(s.otpMasked, '••••0101');
+      expect(s.otpMasked, 'a***@example.com');
       expect(auth.created, 1);
-      expect(otp.purposes, [OtpPurpose.link]);
+      expect(otp.targets, ['asha@example.com']);
       bloc.add(const SignupOtpSubmitted('123456'));
       await _settle(() => bloc.state.status == SignupStatus.submitting);
       s = bloc.state;

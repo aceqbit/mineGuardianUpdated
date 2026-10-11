@@ -22,28 +22,24 @@ import '../../../core/push/push_registrar.dart';
 import '../bloc/signup_bloc.dart';
 import '../bloc/signup_event.dart';
 import '../bloc/signup_state.dart';
-import '../data/countries.dart';
 import '../data/password_rules.dart';
-import '../data/phone_validator.dart';
+import '../data/email_validator.dart';
 import '../data/signup_repository.dart';
-import '../widgets/country_code_picker.dart';
 import '../widgets/date_field.dart';
 import '../widgets/dropdown_field.dart';
 import '../widgets/password_field.dart';
-import '../widgets/phone_field.dart';
 import '../widgets/otp_panels.dart';
 import '../widgets/step_header.dart';
 
 const designations = ['Miner', 'Shot-firer', 'Mining Sirdar', 'Overman', 'Electrician', 'Fitter', 'Surveyor', 'Pump Operator', 'Supervisor', 'Other'];
 const bloodGroups = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
-const relations = ['Spouse', 'Parent', 'Sibling', 'Child', 'Friend', 'Other'];
 
 class SignupScreen extends StatelessWidget {
   const SignupScreen({super.key});
 
   @override
   Widget build(BuildContext context) => BlocProvider(
-        create: (ctx) => SignupBloc(repo: SignupRepository(auth: ctx.read<AuthRepository>(), api: ctx.read<ApiClient>()))..add(const SignupStarted()),
+        create: (ctx) => SignupBloc(repo: SignupRepository(auth: ctx.read<AuthRepository>(), api: ctx.read<ApiClient>()), api: ctx.read<ApiClient>())..add(const SignupStarted()),
         child: const _SignupView(),
       );
 }
@@ -58,26 +54,20 @@ class _SignupView extends StatefulWidget {
 class _SignupViewState extends State<_SignupView> {
   final _name = TextEditingController();
   final _empId = TextEditingController();
-  final _phone = TextEditingController();
+  final _email = TextEditingController();
   final _password = TextEditingController();
   final _confirm = TextEditingController();
-  final _emName = TextEditingController();
-  final _emPhone = TextEditingController();
   final _address = TextEditingController();
-  final _phoneFocus = FocusNode();
   final _pwFocus = FocusNode();
   final _confirmFocus = FocusNode();
-  final _emPhoneFocus = FocusNode();
-  Country? _country;
-  Country? _emCountry;
   final _attempted = <int>{};
 
   @override
   void dispose() {
-    for (final c in [_name, _empId, _phone, _password, _confirm, _emName, _emPhone, _address]) {
+    for (final c in [_name, _empId, _email, _password, _confirm, _address]) {
       c.dispose();
     }
-    for (final f in [_phoneFocus, _pwFocus, _confirmFocus, _emPhoneFocus]) {
+    for (final f in [_pwFocus, _confirmFocus]) {
       f.dispose();
     }
     super.dispose();
@@ -91,22 +81,11 @@ class _SignupViewState extends State<_SignupView> {
     return null;
   }
 
+  String? _emailErr() => validateEmail(_email.text);
+
   String? _empErr() => RegExp(r'^[A-Za-z]{2,4}-?\d{3,8}$').hasMatch(_empId.text.trim()) ? null : 'Use a format like MIN-0123';
 
   String? _confirmErr() => _confirm.text == _password.text && _confirm.text.isNotEmpty ? null : 'Passwords do not match';
-
-  String? _emNameErr() {
-    final v = _emName.text.trim();
-    return v.length >= 2 && v.length <= 60 ? null : 'Enter the contact name';
-  }
-
-  String? _emPhoneErr() {
-    final v = validatePhone(_emCountry?.isoCode, _emPhone.text);
-    if (v.error != null) return v.error;
-    final own = validatePhone(_country?.isoCode, _phone.text);
-    if (own.isValid && own.e164 == v.e164) return "Emergency number must differ from your own";
-    return null;
-  }
 
   int _age(DateTime d) {
     final n = DateTime.now();
@@ -127,7 +106,7 @@ class _SignupViewState extends State<_SignupView> {
         return {
           'name': _nameErr(),
           'emp': _empErr(),
-          'phone': validatePhone(_country?.isoCode, _phone.text).error,
+          'email': _emailErr(),
           'pw': PasswordRules.evaluate(_password.text).firstError,
           'confirm': _confirmErr(),
         };
@@ -143,9 +122,6 @@ class _SignupViewState extends State<_SignupView> {
         return {
           'dob': _dobErr(s),
           'blood': s.bloodGroup == null ? 'Select blood group' : null,
-          'emName': _emNameErr(),
-          'relation': s.relation == null ? 'Select a relation' : null,
-          'emPhone': _emPhoneErr(),
           'address': _address.text.trim().length > 200 ? 'At most 200 characters' : null,
           'consent': s.consent ? null : 'Please confirm your details',
         };
@@ -171,16 +147,11 @@ class _SignupViewState extends State<_SignupView> {
         return;
       }
     }
-    final own = validatePhone(_country!.isoCode, _phone.text);
-    final em = validatePhone(_emCountry!.isoCode, _emPhone.text);
     context.read<SignupBloc>().add(SignupSubmitted(SignupData(
           role: s.role,
           fullName: _name.text,
           employeeId: _empId.text.trim().toUpperCase(),
-          isoCode: _country!.isoCode,
-          dialCode: _country!.dialCode,
-          national: own.national!,
-          e164: own.e164!,
+          email: normalizeEmail(_email.text),
           password: _password.text,
           mineName: s.mineName!,
           zoneId: s.zoneId!,
@@ -190,11 +161,6 @@ class _SignupViewState extends State<_SignupView> {
           dateOfJoining: s.dateOfJoining!,
           dob: s.dob!,
           bloodGroup: s.bloodGroup!,
-          emergencyName: _emName.text,
-          emergencyRelation: s.relation!,
-          emergencyIso: _emCountry!.isoCode,
-          emergencyDial: _emCountry!.dialCode,
-          emergencyNational: em.national!,
           address: _address.text,
         )));
   }
@@ -224,22 +190,11 @@ class _SignupViewState extends State<_SignupView> {
         onChanged: (_) => setState(() {}),
       ),
       const SizedBox(height: Space.lg),
-      _phoneRow(country: _country, onCountry: (c) => setState(() => _country = c), controller: _phone, focus: _phoneFocus, error: _err(0, 'phone', s), label: 'Mobile number'),
+      MgTextField(controller: _email, label: 'Email address', helperText: 'Your login codes are sent here', errorText: _err(0, 'email', s), keyboardType: TextInputType.emailAddress, textInputAction: TextInputAction.next, maxLength: 120, onChanged: (_) => setState(() {})),
       const SizedBox(height: Space.lg),
       PasswordField(controller: _password, focusNode: _pwFocus, errorText: _err(0, 'pw', s), textInputAction: TextInputAction.next, onChanged: (_) => setState(() {}), onSubmitted: (_) => _confirmFocus.requestFocus()),
       const SizedBox(height: Space.lg),
       PasswordField(controller: _confirm, focusNode: _confirmFocus, label: 'Confirm password', showRules: false, errorText: _err(0, 'confirm', s), onChanged: (_) => setState(() {})),
-    ]);
-  }
-
-  Widget _phoneRow({required Country? country, required ValueChanged<Country> onCountry, required TextEditingController controller, required FocusNode focus, required String? error, required String label}) {
-    return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      CountryCodePicker(value: country, hasError: error != null && country == null, onChanged: (c) {
-        onCountry(c);
-        focus.requestFocus();
-      }),
-      const SizedBox(width: Space.md),
-      Expanded(child: PhoneField(controller: controller, focusNode: focus, country: country, errorText: error, showValid: true, label: label, onChanged: (_) => setState(() {}))),
     ]);
   }
 
@@ -282,7 +237,7 @@ class _SignupViewState extends State<_SignupView> {
     final c = MgColors.of(context);
     final now = DateTime.now();
     return Column(key: const ValueKey(2), crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      const SectionHeader(title: 'About you', subtitle: 'Step 3 of 3 · Personal and emergency'),
+      const SectionHeader(title: 'About you', subtitle: 'Step 3 of 3 · Personal'),
       DateField(
         label: 'Date of birth',
         value: s.dob,
@@ -300,14 +255,6 @@ class _SignupViewState extends State<_SignupView> {
       ]),
       if (_err(2, 'blood', s) != null) Padding(padding: const EdgeInsets.only(top: Space.xs), child: Text(_err(2, 'blood', s)!, style: TextStyle(color: c.danger, fontSize: 12))),
       const SizedBox(height: Space.x2),
-      Text('Emergency contact', style: Theme.of(context).textTheme.titleMedium),
-      const SizedBox(height: Space.md),
-      MgTextField(controller: _emName, label: 'Contact name', errorText: _err(2, 'emName', s), textCapitalization: TextCapitalization.words, textInputAction: TextInputAction.next, maxLength: 60, onChanged: (_) => setState(() {})),
-      const SizedBox(height: Space.lg),
-      DropdownField<String>(label: 'Relation', value: s.relation, items: relations, errorText: _err(2, 'relation', s), onChanged: (v) => bloc.add(SignupFieldsChanged(relation: v))),
-      const SizedBox(height: Space.lg),
-      _phoneRow(country: _emCountry, onCountry: (c) => setState(() => _emCountry = c), controller: _emPhone, focus: _emPhoneFocus, error: _err(2, 'emPhone', s), label: 'Contact mobile'),
-      const SizedBox(height: Space.lg),
       MgTextField(controller: _address, label: 'Address (optional)', maxLines: 3, maxLength: 200, errorText: _err(2, 'address', s), onChanged: (_) => setState(() {})),
       const SizedBox(height: Space.lg),
       _review(s),
@@ -321,8 +268,6 @@ class _SignupViewState extends State<_SignupView> {
     ]);
   }
 
-  String _masked(Country? c, String national) => national.length < 4 || c == null ? '' : '+${c.dialCode} ${'*' * (national.length - 4)}${national.substring(national.length - 4)}';
-
   Widget _review(SignupState s) {
     final t = Theme.of(context).textTheme;
     Widget row(String k, String v) => Padding(padding: const EdgeInsets.symmetric(vertical: 2), child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [SizedBox(width: 110, child: Text(k, style: t.bodySmall)), Expanded(child: Text(v.isEmpty ? '—' : v, style: t.bodyMedium))]));
@@ -333,11 +278,10 @@ class _SignupViewState extends State<_SignupView> {
         const SizedBox(height: Space.sm),
         row('Name', _name.text.trim()),
         row('Employee ID', _empId.text.trim().toUpperCase()),
-        row('Mobile', _masked(_country, _phone.text)),
+        row('Email', _email.text.trim()),
         row('Role', s.role == 'miner' ? 'Miner' : 'Supervisor'),
         row('Zone', zone?.name ?? ''),
         row('Shift', s.shift ?? ''),
-        row('Emergency', '${_emName.text.trim()} · ${_masked(_emCountry, _emPhone.text)}'),
       ]),
     );
   }
@@ -386,7 +330,7 @@ class _SignupViewState extends State<_SignupView> {
                   ]),
                 ),
               OtpCodeEntry(
-                maskedPhone: s.otpMasked,
+                maskedEmail: s.otpMasked,
                 cooldownUntil: s.otpCooldownUntil,
                 busy: s.status == SignupStatus.submitting,
                 secondaryLabel: 'Cancel sign-up',

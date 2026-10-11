@@ -4,17 +4,17 @@ import '../../../config.dart';
 import '../../../contracts/enums.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/auth/auth_repository.dart';
-import '../../../core/auth/demo_otp_service.dart';
 import '../../../core/auth/otp_service.dart';
+import '../../../core/auth/server_otp_service.dart';
 import '../../../core/auth/session_bloc.dart';
 import '../../../core/models/session_user.dart';
 import '../../../core/push/push_registrar.dart';
+import '../data/email_validator.dart';
 import '../data/password_rules.dart';
-import '../data/phone_validator.dart';
 import 'login_event.dart';
 import 'login_state.dart';
 
-/// Two-step login. Step 1: number + password. Step 2: an SMS code sent to that number. The session only starts after a
+/// Two-step login. Step 1: email + password. Step 2: a code emailed to that same address. The session only starts after a
 /// valid code; every other outcome (wrong role, wrong code 5 times, cancel, send failure) signs the user out again.
 class LoginBloc extends Bloc<LoginEvent, LoginState> {
   LoginBloc({required AuthRepository auth, required ApiClient api, required SessionBloc session, required PushRegistrar push, OtpService? otp, bool? otpGate})
@@ -22,7 +22,7 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
         _api = api,
         _session = session,
         _push = push,
-        _otp = otp ?? createOtpService(),
+        _otp = otp ?? ServerOtpService(api: api),
         _otpGate = otpGate ?? otpRequired,
         super(const LoginState()) {
     on<RoleSelected>((e, emit) => emit(state.copyWith(role: e.role, clearError: true, clearMismatch: true)));
@@ -46,15 +46,18 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
   OtpSession? _otpSession;
   SessionUser? _pendingUser; // password and role are fine; waiting for the code
 
-  static String _mask(String e164) => e164.length <= 4 ? e164 : '••••${e164.substring(e164.length - 4)}';
+  static String _mask(String email) {
+    final at = email.indexOf('@');
+    return at <= 1 ? email : '${email[0]}***${email.substring(at)}';
+  }
 
-  // ---------------------------------------------------------------- step 1: number + password
+  // ---------------------------------------------------------------- step 1: email + password
 
   Future<void> _onSubmit(SubmitPressed e, Emitter<LoginState> emit) async {
     if (state.status == LoginStatus.submitting || state.otp != OtpPhase.none) return;
-    final phone = validatePhone(e.isoCode, e.national);
-    if (!phone.isValid) {
-      emit(state.copyWith(status: LoginStatus.failure, errorMessage: phone.error));
+    final emailError = validateEmail(e.email);
+    if (emailError != null) {
+      emit(state.copyWith(status: LoginStatus.failure, errorMessage: emailError));
       return;
     }
     final pw = PasswordRules.evaluate(e.password);
@@ -62,16 +65,17 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
       emit(state.copyWith(status: LoginStatus.failure, errorMessage: pw.firstError));
       return;
     }
+    final email = normalizeEmail(e.email);
     emit(state.copyWith(status: LoginStatus.submitting, clearError: true, clearMismatch: true));
     try {
-      await _auth.signIn(phone.e164!, e.password);
-      final user = await _loadUser(); // checks role / active before any SMS is sent
+      await _auth.signIn(email, e.password);
+      final user = await _loadUser(); // checks role / active before any email is sent
       if (!_otpGate) {
         _start(user, emit);
         return;
       }
       _pendingUser = user;
-      await _sendCode(phone.e164!, emit);
+      await _sendCode(email, emit);
     } on AuthFailure catch (f) {
       await _abort(emit, f.message);
     } on ApiException catch (ex) {
@@ -125,21 +129,20 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
     }
   }
 
-  // ---------------------------------------------------------------- step 2: SMS code
+  // ---------------------------------------------------------------- step 2: emailed code
 
-  Future<void> _sendCode(String e164, Emitter<LoginState> emit, {int? token}) async {
+  Future<void> _sendCode(String email, Emitter<LoginState> emit) async {
     try {
-      final s = await _otp.send(e164, purpose: _otpSession?.purpose ?? _otp.purpose, resendToken: token);
+      final s = await _otp.send(email);
       _otpSession = s;
       emit(state.copyWith(
         status: LoginStatus.idle,
         otp: OtpPhase.awaitingCode,
         cooldownUntil: DateTime.now().add(otpResendCooldown),
         attemptsLeft: otpMaxAttempts,
-        maskedPhone: _mask(e164),
+        maskedEmail: s.maskedTarget ?? _mask(email),
         clearError: true,
       ));
-      if (s.instantCredential != null) add(const OtpCodeSubmitted('')); // Firebase verified the phone without a code
     } on AuthFailure catch (f) {
       await _abort(emit, f.message);
     } catch (_) {
@@ -153,7 +156,7 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
     if (s == null || state.otp != OtpPhase.awaitingCode || state.status == LoginStatus.submitting) return;
     if (wait != null && DateTime.now().isBefore(wait)) return;
     emit(state.copyWith(status: LoginStatus.submitting, clearError: true));
-    await _sendCode(s.e164, emit, token: s.resendToken);
+    await _sendCode(s.email, emit);
   }
 
   Future<void> _onCancel(OtpCancelled e, Emitter<LoginState> emit) async {
@@ -166,7 +169,7 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
     final user = _pendingUser;
     if (session == null || user == null || state.otp != OtpPhase.awaitingCode || state.status == LoginStatus.submitting) return;
     final code = e.code.trim();
-    if (session.instantCredential == null && !RegExp(r'^\d{6}$').hasMatch(code)) {
+    if (!RegExp(r'^\d{6}$').hasMatch(code)) {
       emit(state.copyWith(status: LoginStatus.failure, errorMessage: 'Enter the 6-digit code'));
       return;
     }

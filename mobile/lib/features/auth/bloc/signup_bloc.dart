@@ -2,9 +2,11 @@ import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../config.dart';
+import '../../../core/api/api_client.dart';
 import '../../../core/auth/auth_repository.dart' show AuthFailure;
-import '../../../core/auth/demo_otp_service.dart';
+import '../../../core/auth/server_otp_service.dart';
 import '../../../core/auth/otp_service.dart';
+import '../data/email_validator.dart';
 import '../data/signup_repository.dart';
 import 'login_state.dart' show otpMaxAttempts, otpResendCooldown;
 import 'signup_event.dart';
@@ -13,9 +15,9 @@ import 'signup_state.dart';
 /// Sign-up: Firebase account, then an SMS code that proves the phone, then the profile. If the phone is not verified
 /// for any reason the new Firebase account is deleted again (no orphans).
 class SignupBloc extends Bloc<SignupEvent, SignupState> {
-  SignupBloc({required SignupRepository repo, OtpService? otp, bool? otpGate})
+  SignupBloc({required SignupRepository repo, ApiClient? api, OtpService? otp, bool? otpGate})
       : _repo = repo,
-        _otp = otp ?? createOtpService(),
+        _otp = otp ?? ServerOtpService(api: api!),
         _otpGate = otpGate ?? otpRequired,
         super(const SignupState()) {
     on<SignupStarted>(_onStarted);
@@ -34,7 +36,10 @@ class SignupBloc extends Bloc<SignupEvent, SignupState> {
   SignupData? _data;
   OtpSession? _session;
 
-  static String _mask(String e164) => e164.length <= 4 ? e164 : '••••${e164.substring(e164.length - 4)}';
+  static String _mask(String email) {
+    final at = email.indexOf('@');
+    return at <= 1 ? email : '${email[0]}***${email.substring(at)}';
+  }
 
   Future<void> _onStarted(SignupStarted e, Emitter<SignupState> emit) async {
     emit(state.copyWith(status: SignupStatus.loadingZones));
@@ -59,7 +64,6 @@ class SignupBloc extends Bloc<SignupEvent, SignupState> {
       dateOfJoining: e.dateOfJoining,
       dob: e.dob,
       bloodGroup: e.bloodGroup,
-      relation: e.relation,
       consent: e.consent,
     ));
   }
@@ -76,7 +80,7 @@ class SignupBloc extends Bloc<SignupEvent, SignupState> {
       await _repo.createAccount(e.data);
       _data = e.data;
       emit(state.copyWith(progressLabel: 'Sending code…'));
-      await _sendCode(e.data.e164, emit);
+      await _sendCode(normalizeEmail(e.data.email), emit);
     } on SignupFailure catch (f) {
       emit(state.copyWith(status: SignupStatus.failure, errorMessage: f.message, errorStep: f.step, step: f.step, alreadyRegistered: f.alreadyRegistered));
     } catch (e) {
@@ -91,18 +95,17 @@ class SignupBloc extends Bloc<SignupEvent, SignupState> {
     }
   }
 
-  Future<void> _sendCode(String e164, Emitter<SignupState> emit, {int? token}) async {
+  Future<void> _sendCode(String email, Emitter<SignupState> emit) async {
     try {
-      final s = await _otp.send(e164, purpose: OtpPurpose.link, resendToken: token);
+      final s = await _otp.send(email);
       _session = s;
       emit(state.copyWith(
         status: SignupStatus.verifying,
-        otpMasked: _mask(e164),
+        otpMasked: s.maskedTarget ?? _mask(email),
         otpCooldownUntil: DateTime.now().add(otpResendCooldown),
         otpAttemptsLeft: otpMaxAttempts,
         clearError: true,
       ));
-      if (s.instantCredential != null) add(const SignupOtpSubmitted(''));
     } on AuthFailure catch (f) {
       await _rollback(emit, f.message);
     } catch (_) {
@@ -125,7 +128,7 @@ class SignupBloc extends Bloc<SignupEvent, SignupState> {
     final wait = state.otpCooldownUntil;
     if (s == null || state.status != SignupStatus.verifying) return;
     if (wait != null && DateTime.now().isBefore(wait)) return;
-    await _sendCode(s.e164, emit, token: s.resendToken);
+    await _sendCode(s.email, emit);
   }
 
   Future<void> _onCancel(SignupOtpCancelled e, Emitter<SignupState> emit) async {
@@ -143,7 +146,7 @@ class SignupBloc extends Bloc<SignupEvent, SignupState> {
     final data = _data;
     if (session == null || data == null || state.status != SignupStatus.verifying) return;
     final code = e.code.trim();
-    if (session.instantCredential == null && !RegExp(r'^\d{6}$').hasMatch(code)) {
+    if (!RegExp(r'^\d{6}$').hasMatch(code)) {
       emit(state.copyWith(errorMessage: 'Enter the 6-digit code', errorStep: 0));
       return;
     }

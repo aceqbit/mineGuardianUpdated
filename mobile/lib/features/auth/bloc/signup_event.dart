@@ -24,7 +24,6 @@ class SignupFieldsChanged extends SignupEvent {
     this.dateOfJoining,
     this.dob,
     this.bloodGroup,
-    this.relation,
     this.consent,
   });
   final String? role;
@@ -36,10 +35,9 @@ class SignupFieldsChanged extends SignupEvent {
   final DateTime? dateOfJoining;
   final DateTime? dob;
   final String? bloodGroup;
-  final String? relation;
   final bool? consent;
   @override
-  List<Object?> get props => [role, mineName, zoneId, shift, designation, experienceYears, dateOfJoining, dob, bloodGroup, relation, consent];
+  List<Object?> get props => [role, mineName, zoneId, shift, designation, experienceYears, dateOfJoining, dob, bloodGroup, consent];
 }
 
 class SignupStepChanged extends SignupEvent {

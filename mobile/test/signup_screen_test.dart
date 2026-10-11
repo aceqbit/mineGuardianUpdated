@@ -51,6 +51,8 @@ void main() {
       await tester.pump(const Duration(milliseconds: 400));
       expect(tester.takeException(), isNull);
       expect(find.text('Create your account'), findsOneWidget);
+      expect(find.text('Email address'), findsOneWidget);
+      expect(find.text('Mobile number'), findsNothing);
       for (final f in tester.widgetList<TextField>(find.byType(TextField))) {
         expect(f.controller!.text, isEmpty);
       }

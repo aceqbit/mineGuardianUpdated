@@ -20,14 +20,12 @@ import '../../../core/push/push_registrar.dart';
 import '../bloc/login_bloc.dart';
 import '../bloc/login_event.dart';
 import '../bloc/login_state.dart';
-import '../data/countries.dart';
 import '../data/password_rules.dart';
-import '../data/phone_validator.dart';
-import '../widgets/country_code_picker.dart';
+import '../data/email_validator.dart';
+import '../../../app/ui/mg_text_field.dart';
 import '../widgets/login_hero.dart';
 import '../widgets/otp_panels.dart';
 import '../widgets/password_field.dart';
-import '../widgets/phone_field.dart';
 import '../widgets/role_switcher.dart';
 
 class LoginScreen extends StatelessWidget {
@@ -59,15 +57,13 @@ class _LoginView extends StatefulWidget {
 }
 
 class _LoginViewState extends State<_LoginView> with SingleTickerProviderStateMixin {
-  // Everything starts empty: no default country, no pre-filled values, no timers.
-  Country? _country;
-  final _phone = TextEditingController();
+  // Everything starts empty: no pre-filled values, no timers.
+  final _email = TextEditingController();
   final _password = TextEditingController();
-  final _codeFocus = FocusNode();
-  final _phoneFocus = FocusNode();
+  final _emailFocus = FocusNode();
   final _pwFocus = FocusNode();
   late final AnimationController _shake = AnimationController(vsync: this, duration: const Duration(milliseconds: 300));
-  bool _phoneTouched = false;
+  bool _emailTouched = false;
   bool _pwTouched = false;
   bool _submitted = false;
   String _shakeTarget = '';
@@ -75,8 +71,8 @@ class _LoginViewState extends State<_LoginView> with SingleTickerProviderStateMi
   @override
   void initState() {
     super.initState();
-    _phoneFocus.addListener(() {
-      if (!_phoneFocus.hasFocus && _phone.text.isNotEmpty) setState(() => _phoneTouched = true);
+    _emailFocus.addListener(() {
+      if (!_emailFocus.hasFocus && _email.text.isNotEmpty) setState(() => _emailTouched = true);
     });
     _pwFocus.addListener(() {
       if (!_pwFocus.hasFocus && _password.text.isNotEmpty) setState(() => _pwTouched = true);
@@ -85,18 +81,17 @@ class _LoginViewState extends State<_LoginView> with SingleTickerProviderStateMi
 
   @override
   void dispose() {
-    _phone.dispose();
+    _email.dispose();
     _password.dispose();
-    _codeFocus.dispose();
-    _phoneFocus.dispose();
+    _emailFocus.dispose();
     _pwFocus.dispose();
     _shake.dispose();
     super.dispose();
   }
 
-  String? get _phoneError {
-    if (!(_phoneTouched || _submitted)) return null;
-    return validatePhone(_country?.isoCode, _phone.text).error;
+  String? get _emailError {
+    if (!(_emailTouched || _submitted)) return null;
+    return validateEmail(_email.text);
   }
 
   String? get _pwError {
@@ -106,23 +101,15 @@ class _LoginViewState extends State<_LoginView> with SingleTickerProviderStateMi
 
   void _submit() {
     setState(() => _submitted = true);
-    final phoneBad = validatePhone(_country?.isoCode, _phone.text).error != null;
+    final emailBad = validateEmail(_email.text) != null;
     final pwBad = !PasswordRules.evaluate(_password.text).isValid;
-    if (phoneBad || pwBad) {
-      if (_country == null) {
-        _shakeTarget = 'code';
-        _codeFocus.requestFocus();
-      } else if (phoneBad) {
-        _shakeTarget = 'phone';
-        _phoneFocus.requestFocus();
-      } else {
-        _shakeTarget = 'pw';
-        _pwFocus.requestFocus();
-      }
+    if (emailBad || pwBad) {
+      _shakeTarget = emailBad ? 'email' : 'pw';
+      (emailBad ? _emailFocus : _pwFocus).requestFocus();
       if (!Motion.reduce(context)) _shake.forward(from: 0);
       return;
     }
-    context.read<LoginBloc>().add(SubmitPressed(isoCode: _country?.isoCode, national: _phone.text, password: _password.text));
+    context.read<LoginBloc>().add(SubmitPressed(email: _email.text, password: _password.text));
   }
 
   Widget _shaken(String id, Widget child) => AnimatedBuilder(
@@ -144,7 +131,7 @@ class _LoginViewState extends State<_LoginView> with SingleTickerProviderStateMi
         padding: const EdgeInsets.all(Space.md),
         decoration: BoxDecoration(color: c.warningBg, borderRadius: BorderRadius.circular(Radii.sm)),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('This number is registered as ${actual.label}. Switch to ${actual.label} Login.', style: t.bodyMedium?.copyWith(color: c.warning)),
+          Text('This email is registered as ${actual.label}. Switch to ${actual.label} Login.', style: t.bodyMedium?.copyWith(color: c.warning)),
           const SizedBox(height: Space.sm),
           MgButton(label: 'Switch to ${actual.label} Login', kind: MgButtonKind.secondary, onPressed: () => context.read<LoginBloc>().add(const MismatchSwitchRequested())),
         ]),
@@ -176,7 +163,7 @@ class _LoginViewState extends State<_LoginView> with SingleTickerProviderStateMi
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisSize: MainAxisSize.min, children: [
         Text(verifying ? 'Verify it is you' : 'Welcome back', style: t.headlineMedium),
         const SizedBox(height: Space.xs),
-        Text(verifying ? 'One more step to protect your account' : 'Log in with your mobile number', style: t.bodySmall),
+        Text(verifying ? 'One more step to protect your account' : 'Log in with your email address', style: t.bodySmall),
         const SizedBox(height: Space.lg),
         OtpStepper(step: verifying ? 1 : 0),
         const SizedBox(height: Space.x2),
@@ -187,61 +174,42 @@ class _LoginViewState extends State<_LoginView> with SingleTickerProviderStateMi
         _banner(context, s),
         if (verifying)
           OtpCodeEntry(
-            maskedPhone: s.maskedPhone,
+            maskedEmail: s.maskedEmail,
             cooldownUntil: s.cooldownUntil,
             busy: submitting,
-            secondaryLabel: 'Change number',
+            secondaryLabel: 'Use a different email',
             onVerify: (code) => bloc.add(OtpCodeSubmitted(code)),
             onResend: () => bloc.add(const OtpResendRequested()),
             onSecondary: () => bloc.add(const OtpCancelled()),
           )
         else ...[
-          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            FocusTraversalOrder(
-              order: const NumericFocusOrder(1),
-              child: _shaken(
-                'code',
-                CountryCodePicker(
-                  value: _country,
-                  focusNode: _codeFocus,
-                  hasError: _submitted && _country == null,
-                  onChanged: (ct) => setState(() {
-                    _country = ct;
-                    if (_phone.text.length > (ct.isoCode == 'IN' ? 10 : 15)) _phone.text = _phone.text.substring(0, ct.isoCode == 'IN' ? 10 : 15);
-                    _phoneFocus.requestFocus();
-                  }),
-                ),
+          FocusTraversalOrder(
+            order: const NumericFocusOrder(1),
+            child: _shaken(
+              'email',
+              MgTextField(
+                controller: _email,
+                focusNode: _emailFocus,
+                label: 'Email address',
+                errorText: _emailError,
+                keyboardType: TextInputType.emailAddress,
+                textInputAction: TextInputAction.next,
+                maxLength: 120,
+                onChanged: (_) => setState(() {}),
+                onSubmitted: (_) => _pwFocus.requestFocus(),
               ),
             ),
-            const SizedBox(width: Space.md),
-            Expanded(
-              child: FocusTraversalOrder(
-                order: const NumericFocusOrder(2),
-                child: _shaken(
-                  'phone',
-                  PhoneField(
-                    controller: _phone,
-                    focusNode: _phoneFocus,
-                    country: _country,
-                    errorText: _phoneError,
-                    showValid: _phoneTouched || _submitted,
-                    onChanged: (_) => setState(() {}),
-                    onSubmitted: (_) => _pwFocus.requestFocus(),
-                  ),
-                ),
-              ),
-            ),
-          ]),
+          ),
           const SizedBox(height: Space.lg),
           FocusTraversalOrder(
             order: const NumericFocusOrder(3),
             child: _shaken('pw', PasswordField(controller: _password, focusNode: _pwFocus, errorText: _pwError, onSubmitted: (_) => _submit(), onChanged: (_) => setState(() {}))),
           ),
           const SizedBox(height: Space.x2),
-          FocusTraversalOrder(order: const NumericFocusOrder(4), child: MgButton(label: otpRequired ? 'Continue' : 'Log in as ${s.role.label}', icon: otpRequired ? Icons.sms_outlined : null, expand: true, loading: submitting, onPressed: _submit)),
+          FocusTraversalOrder(order: const NumericFocusOrder(4), child: MgButton(label: otpRequired ? 'Continue' : 'Log in as ${s.role.label}', icon: otpRequired ? Icons.mark_email_read_outlined : null, expand: true, loading: submitting, onPressed: _submit)),
           if (otpRequired) ...[
             const SizedBox(height: Space.sm),
-            Text('We will text a 6-digit code to this number to confirm it is you.', textAlign: TextAlign.center, style: t.bodySmall),
+            Text('We will email a 6-digit code to the address on your account to confirm it is you.', textAlign: TextAlign.center, style: t.bodySmall),
           ],
           const SizedBox(height: Space.lg),
           Wrap(alignment: WrapAlignment.spaceBetween, crossAxisAlignment: WrapCrossAlignment.center, children: [

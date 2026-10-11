@@ -15,14 +15,13 @@ class RoleSelected extends LoginEvent {
   List<Object?> get props => [role];
 }
 
-/// Step 1: number + password. On success an SMS code is sent and step 2 begins.
+/// Step 1: email + password. On success a code is emailed to that address and step 2 begins.
 class SubmitPressed extends LoginEvent {
-  const SubmitPressed({required this.isoCode, required this.national, required this.password});
-  final String? isoCode;
-  final String national;
+  const SubmitPressed({required this.email, required this.password});
+  final String email;
   final String password;
   @override
-  List<Object?> get props => [isoCode, national];
+  List<Object?> get props => [email];
 }
 
 class MismatchSwitchRequested extends LoginEvent {

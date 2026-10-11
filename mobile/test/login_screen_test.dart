@@ -32,7 +32,9 @@ void main() {
       ));
       await tester.pump(const Duration(milliseconds: 100));
       expect(tester.takeException(), isNull);
-      expect(find.text('Code'), findsOneWidget); // no default country
+      expect(find.text('Email address'), findsOneWidget); // email only: no country code, no phone field
+      expect(find.text('Code'), findsNothing);
+      expect(find.text('Mobile number'), findsNothing);
       expect(find.text('Miner Login'), findsOneWidget);
       expect(find.text('Supervisor Login'), findsOneWidget);
       expect(find.text('Admin Login'), findsOneWidget);

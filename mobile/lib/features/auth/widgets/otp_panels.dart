@@ -5,11 +5,10 @@ import '../../../app/theme/motion.dart';
 import '../../../app/theme/tokens.dart';
 import '../../../app/ui/mg_button.dart';
 import '../../../app/ui/mg_text_field.dart';
-import '../../../core/auth/demo_otp_service.dart';
 
-/// "1 Number & password  ->  2 Verify code" progress, so users know a code is part of logging in.
+/// "1 Email & password  ->  2 Verify code" progress, so users know a code is part of logging in.
 class OtpStepper extends StatelessWidget {
-  const OtpStepper({super.key, required this.step, this.labels = const ['Number & password', 'Verify code']});
+  const OtpStepper({super.key, required this.step, this.labels = const ['Email & password', 'Verify code']});
 
   /// 0 or 1.
   final int step;
@@ -51,7 +50,7 @@ class OtpStepper extends StatelessWidget {
 class OtpCodeEntry extends StatefulWidget {
   const OtpCodeEntry({
     super.key,
-    required this.maskedPhone,
+    required this.maskedEmail,
     required this.cooldownUntil,
     required this.busy,
     required this.onVerify,
@@ -60,7 +59,7 @@ class OtpCodeEntry extends StatefulWidget {
     required this.secondaryLabel,
     this.title = 'Enter the 6-digit code',
   });
-  final String? maskedPhone;
+  final String? maskedEmail;
   final DateTime? cooldownUntil;
   final bool busy;
   final ValueChanged<String> onVerify;
@@ -126,24 +125,9 @@ class _OtpCodeEntryState extends State<OtpCodeEntry> with SingleTickerProviderSt
     final t = Theme.of(context).textTheme;
     final c = MgColors.of(context);
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisSize: MainAxisSize.min, children: [
-      ValueListenableBuilder<String?>(
-        valueListenable: DemoOtp.code,
-        builder: (context, demo, _) => demo == null
-            ? const SizedBox.shrink()
-            : Container(
-                margin: const EdgeInsets.only(bottom: Space.lg),
-                padding: const EdgeInsets.all(Space.md),
-                decoration: BoxDecoration(color: c.amber50, border: Border.all(color: c.amber500), borderRadius: BorderRadius.circular(Radii.sm)),
-                child: Row(children: [
-                  Icon(Icons.science_outlined, color: c.amberText),
-                  const SizedBox(width: Space.md),
-                  Expanded(child: Text('DEMO MODE: no SMS was sent. Your code is $demo', style: t.titleSmall?.copyWith(color: c.text))),
-                ]),
-              ),
-      ),
       Text(widget.title, style: t.titleMedium),
       const SizedBox(height: Space.xs),
-      Text('We sent a code by SMS to ${widget.maskedPhone ?? 'your phone'}. It works once and expires in a few minutes.', style: t.bodySmall),
+      Text('We emailed a code to ${widget.maskedEmail ?? 'your email'}. It works once and expires in 5 minutes. Check spam if you do not see it.', style: t.bodySmall),
       const SizedBox(height: Space.lg),
       MgTextField(
         controller: _code,

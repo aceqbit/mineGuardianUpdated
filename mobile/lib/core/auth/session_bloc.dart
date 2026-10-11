@@ -73,18 +73,15 @@ class SessionBloc extends Bloc<SessionEvent, SessionState> {
     return SessionUser.fromMe(json);
   }
 
+  /// Every app start begins at the login screen. A Firebase session the browser or phone kept from last time is ended, because
+  /// a password-only session would skip the emailed code that every login needs.
   Future<void> _onStarted(AppStarted e, Emitter<SessionState> emit) async {
-    if (_auth.currentUser == null) {
-      emit(const SessionUnauthenticated());
-      return;
+    if (_auth.currentUser != null) {
+      try {
+        await _auth.signOut();
+      } catch (_) {}
     }
-    try {
-      final u = await _fetchMe();
-      emit(SessionAuthenticated(u!));
-    } catch (_) {
-      await _auth.signOut();
-      emit(const SessionUnauthenticated());
-    }
+    emit(const SessionUnauthenticated());
   }
 
   Future<void> _onRefreshed(SessionRefreshed e, Emitter<SessionState> emit) async {

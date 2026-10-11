@@ -20,10 +20,10 @@ void main() {
                 const OtpStepper(step: 1),
                 const SizedBox(height: Space.lg),
                 OtpCodeEntry(
-                  maskedPhone: '••••0101',
+                  maskedEmail: 'a***@example.com',
                   cooldownUntil: DateTime.now().add(const Duration(seconds: 30)),
                   busy: false,
-                  secondaryLabel: 'Change number',
+                  secondaryLabel: 'Use a different email',
                   onVerify: (c) => sent = c,
                   onResend: () {},
                   onSecondary: () {},
@@ -35,7 +35,7 @@ void main() {
         await tester.pump(const Duration(milliseconds: 300));
         expect(tester.takeException(), isNull);
         expect(find.textContaining('Resend code in'), findsOneWidget);
-        expect(find.textContaining('••••0101'), findsOneWidget);
+        expect(find.textContaining('a***@example.com'), findsOneWidget);
         // Starts empty, accepts digits only, Verify enabled only at 6 digits.
         expect(tester.widget<TextField>(find.byType(TextField)).controller!.text, isEmpty);
         await tester.enterText(find.byType(TextField), '12a34');
@@ -54,7 +54,7 @@ void main() {
     final first = DateTime.now().add(const Duration(seconds: 30));
     Widget host(DateTime until) => MaterialApp(
           theme: ThemeData(useMaterial3: true, extensions: const [MgColors.light]),
-          home: Scaffold(body: SingleChildScrollView(child: OtpCodeEntry(maskedPhone: '••••0101', cooldownUntil: until, busy: false, secondaryLabel: 'x', onVerify: (_) {}, onResend: () {}, onSecondary: () {}))),
+          home: Scaffold(body: SingleChildScrollView(child: OtpCodeEntry(maskedEmail: 'a***@example.com', cooldownUntil: until, busy: false, secondaryLabel: 'x', onVerify: (_) {}, onResend: () {}, onSecondary: () {}))),
         );
     await tester.pumpWidget(host(first));
     await tester.enterText(find.byType(TextField), '123');

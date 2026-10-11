@@ -19,7 +19,6 @@ class SignupState extends Equatable {
     this.dateOfJoining,
     this.dob,
     this.bloodGroup,
-    this.relation,
     this.consent = false,
     this.errorMessage,
     this.errorStep,
@@ -43,7 +42,6 @@ class SignupState extends Equatable {
   final DateTime? dateOfJoining;
   final DateTime? dob;
   final String? bloodGroup;
-  final String? relation;
   final bool consent;
   final String? errorMessage;
   final int? errorStep;
@@ -71,7 +69,6 @@ class SignupState extends Equatable {
     DateTime? dateOfJoining,
     DateTime? dob,
     String? bloodGroup,
-    String? relation,
     bool? consent,
     String? errorMessage,
     int? errorStep,
@@ -97,7 +94,6 @@ class SignupState extends Equatable {
         dateOfJoining: dateOfJoining ?? this.dateOfJoining,
         dob: dob ?? this.dob,
         bloodGroup: bloodGroup ?? this.bloodGroup,
-        relation: relation ?? this.relation,
         consent: consent ?? this.consent,
         errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
         errorStep: clearError ? null : (errorStep ?? this.errorStep),
@@ -110,5 +106,5 @@ class SignupState extends Equatable {
       );
 
   @override
-  List<Object?> get props => [step, status, zones, role, mineName, zoneId, shift, designation, experienceYears, dateOfJoining, dob, bloodGroup, relation, consent, errorMessage, errorStep, alreadyRegistered, progressLabel, user, otpMasked, otpCooldownUntil, otpAttemptsLeft];
+  List<Object?> get props => [step, status, zones, role, mineName, zoneId, shift, designation, experienceYears, dateOfJoining, dob, bloodGroup, consent, errorMessage, errorStep, alreadyRegistered, progressLabel, user, otpMasked, otpCooldownUntil, otpAttemptsLeft];
 }
