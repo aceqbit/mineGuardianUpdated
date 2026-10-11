@@ -40,10 +40,10 @@ test('an invalid image degrades instead of throwing', async () => {
   assert.equal(r.error.code, 'IMAGE_INVALID');
 });
 
-test('mock mode is deterministic from the image sha256 and covers every scenario', async () => {
+test('mock mode is deterministic from the image sha256 and covers every scenario and never reports an emergency', async () => {
   const cfg = aiConfig({ ML_MODE: 'mock' });
   const seen = new Set();
-  for (let seed = 0; seed < 40 && seen.size < 4; seed++) {
+  for (let seed = 0; seed < 40 && seen.size < 3; seed++) {
     const buf = await jpeg(seed);
     const { sha256 } = await prepare(buf);
     const a = await analyzeImage({ mode: 'ppe', imageBuffer: buf, context: ctx }, cfg);
@@ -54,10 +54,8 @@ test('mock mode is deterministic from the image sha256 and covers every scenario
     if (sc === 'compliant') assert.equal(a.overallVerdict, 'COMPLIANT');
     if (sc === 'no_helmet') assert.equal(a.overallVerdict, 'NON_COMPLIANT');
     if (sc === 'needs_review') assert.equal(a.overallVerdict, 'NEEDS_MANUAL_REVIEW');
-    if (sc === 'emergency') {
-      assert.equal(a.emergency.detected, true);
-      assert.equal(a.criticality.score, 100);
-    }
+    assert.equal(a.emergency.detected, false);
+    assert.notEqual(sc, 'emergency');
   }
   assert.ok(seen.size >= 3, `only saw ${[...seen]}`);
 });

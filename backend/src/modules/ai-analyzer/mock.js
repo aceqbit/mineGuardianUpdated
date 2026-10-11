@@ -1,13 +1,13 @@
 // ML_MODE=mock: deterministic output derived from the image sha256, so UI and pipeline work needs no API key.
-// Last hex digit of the hash picks the scenario: 0-3 compliant, 4-6 helmet missing, 7-8 needs review, 9-f emergency.
+// Last hex digit of the hash picks the scenario: 0-3 compliant, 4-6 helmet missing, 7-f needs review.
+// Mock output never reports an emergency: an emergency starts a real crisis (calls, banners), which a fake analysis must not do.
 const lastNibble = (sha) => parseInt(sha.slice(-1), 16);
 
 export function mockScenario(sha) {
   const n = lastNibble(sha);
   if (n <= 3) return 'compliant';
   if (n <= 6) return 'no_helmet';
-  if (n <= 8) return 'needs_review';
-  return 'emergency';
+  return 'needs_review';
 }
 
 const present = (key) => ({ key, status: 'PRESENT', confidence: 0.9, evidence: `${key.toLowerCase().replace(/_/g, ' ')} clearly visible on the worker` });
@@ -27,9 +27,6 @@ export function mockPpeRaw(sha, required) {
     if (i >= 0) items[i] = { key: 'GLOVES', status: 'UNCERTAIN', confidence: 0.45, evidence: '' };
     full = false;
     summary = 'Gloves cannot be confirmed; feet are out of frame.';
-  } else if (scenario === 'emergency') {
-    emergency = { detected: true, possible: true, type: 'FIRE', confidence: 0.9, evidence: 'open flame and smoke behind the worker' };
-    summary = 'Fire and smoke are visible behind the worker.';
   }
   return {
     mode: 'PPE_COMPLIANCE', image_relevance: 'RELEVANT', framing: { full_body_visible: full, persons_count: 1, notes: 'mock' }, items, emergency, conflicts: [],
@@ -38,9 +35,8 @@ export function mockPpeRaw(sha, required) {
 }
 
 export function mockHazardRaw(sha, context = {}) {
-  const scenario = mockScenario(sha);
   const category = context.category ?? 'OTHER';
-  const crit = scenario === 'emergency';
+  const crit = false;
   return {
     mode: 'HAZARD_SCENE', image_relevance: 'RELEVANT', hazard_description: crit ? 'Open flame and dense smoke in the roadway.' : 'A loose cable lies across the walkway.',
     category_claimed: category, category_observed: crit ? 'FIRE_SMOKE' : category, category_matches: !crit, severity: crit ? 'CRITICAL' : 'MEDIUM', severity_confidence: crit ? 0.9 : 0.7,
