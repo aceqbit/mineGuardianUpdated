@@ -9,7 +9,7 @@ plugins {
 
 android {
     namespace = "com.mineguardian.mine_guardian"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 37 // permission_handler_android needs 37; targetSdk below is unchanged
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
@@ -37,6 +37,9 @@ android {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
+            // R8 removed a class WorkManager needs and the app crashed at start-up (WorkDatabase). No shrinking = no crash.
+            isMinifyEnabled = false
+            isShrinkResources = false
         }
     }
 }
