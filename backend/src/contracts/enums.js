@@ -27,3 +27,10 @@ export const BROADCAST_SCOPE = e('ALL', 'ZONE', 'ROLE');
 export const BROADCAST_PRIORITY = e('INFO', 'URGENT', 'EMERGENCY');
 export const CONTACT_CATEGORY = e('POLICE', 'FIRE', 'MINE_RESCUE', 'AMBULANCE', 'DISTRICT_MINING_AUTHORITY');
 export const REVIEW_STATUS = e('PENDING_REVIEW', 'DECIDED');
+// Add-on pack X (CLAUDE.md section 23, CONTRACT commit X0). Additive only.
+export const ROUTE_MODE = e('LEAST_HINDRANCE', 'MOST_LIGHT', 'MOST_AID', 'DIRECT');
+export const AID_TYPE = e('FIRST_AID', 'TOOL_STATION', 'PHONE', 'SCSR_CACHE', 'FIRE_EXTINGUISHER');
+export const POSITION_SOURCE = e('GPS', 'FUSED', 'PDR');
+export const SAFETY_ITEM_KIND = e('RULE', 'REACT', 'PREVENT', 'LESSON');
+export const VOICE_CALL_STATUS = e('QUEUED', 'RINGING', 'IN_PROGRESS', 'COMPLETED', 'FAILED', 'DRY_RUN');
+export const PRESENCE = e('LIVE', 'STALE', 'OFFLINE');

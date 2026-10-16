@@ -24,6 +24,11 @@ class SocketEvents {
   static const leaderboardUpdated = 'leaderboard:updated';
   static const scoreUpdated = 'score:updated';
   static const slaBreach = 'sla:breach';
+  // add-on pack X
+  static const profileUpdated = 'profile:updated';
+  static const trackingPositions = 'tracking:positions';
+  static const safetyFeed = 'safety:feed';
+  static const voiceCallStatus = 'voice:call_status';
 
   // client -> server
   static const gpsUpdate = 'gps:update';
@@ -35,5 +40,6 @@ class SocketEvents {
     hazardUpdated, sosTriggered, sosCancelled, crisisActivated, crisisRoutes, crisisRouteAssigned,
     crisisUpdated, crisisPositions, crisisResolved, broadcastMessage, broadcastReply, broadcastStats,
     leaderboardUpdated, scoreUpdated, slaBreach,
+    profileUpdated, trackingPositions, safetyFeed, voiceCallStatus,
   ];
 }

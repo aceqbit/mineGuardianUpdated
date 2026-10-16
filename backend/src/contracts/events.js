@@ -7,6 +7,8 @@ export const SOCKET_EVENTS = Object.freeze({
     'crisis:activated', 'crisis:routes', 'crisis:route_assigned', 'crisis:updated', 'crisis:positions', 'crisis:resolved',
     'broadcast:message', 'broadcast:reply', 'broadcast:stats',
     'leaderboard:updated', 'score:updated', 'sla:breach',
+    // add-on pack X
+    'profile:updated', 'tracking:positions', 'safety:feed', 'voice:call_status',
   ]),
   clientToServer: Object.freeze(['gps:update', 'broadcast:ack', 'broadcast:reply']),
 });
@@ -14,4 +16,6 @@ export const SOCKET_EVENTS = Object.freeze({
 export const BUS_EVENTS = Object.freeze([
   'CheckInCreated', 'HazardCreated', 'HazardStatusChanged', 'SosTriggered', 'SosCancelled',
   'GpsUpdated', 'ComplianceReviewed', 'CrisisRequested', 'CrisisActivated', 'CrisisResolved',
+  // add-on pack X
+  'ProfileChanged', 'SafetyFeedUpdated',
 ]);

@@ -1,6 +1,7 @@
 import { Server } from 'socket.io';
 import { v4 as uuid } from 'uuid';
 import { SOCKET_EVENTS } from '../contracts/events.js';
+import { POSITION_SOURCE } from '../contracts/enums.js';
 import { verifySocketHandshake } from './auth.js';
 import { publish } from './bus.js';
 import { logger } from './logger.js';
@@ -48,9 +49,16 @@ function handleGps(ctx, data) {
   if (!num(lng) || lng < -180 || lng > 180) return { ok: false, error: 'INVALID_LNG' };
   if (!num(accuracyM) || accuracyM < 0) return { ok: false, error: 'INVALID_ACCURACY' };
   if (typeof ts !== 'string' || Number.isNaN(Date.parse(ts))) return { ok: false, error: 'INVALID_TS' };
+  // Add-on X0: optional fused-tracking fields; older clients omit them.
+  const { headingDeg, speedMps, source, tunnelId } = data;
+  if (headingDeg != null && (!num(headingDeg) || headingDeg < 0 || headingDeg >= 360)) return { ok: false, error: 'INVALID_HEADING' };
+  if (speedMps != null && (!num(speedMps) || speedMps < 0 || speedMps > 20)) return { ok: false, error: 'INVALID_SPEED' };
+  if (source != null && !POSITION_SOURCE.includes(source)) return { ok: false, error: 'INVALID_SOURCE' };
+  if (tunnelId != null && (typeof tunnelId !== 'string' || tunnelId.length > 64)) return { ok: false, error: 'INVALID_TUNNEL' };
+  const extra = { headingDeg: headingDeg ?? null, speedMps: speedMps ?? null, source: source ?? 'GPS', tunnelId: tunnelId ?? null };
   const p = presence.get(String(ctx.user._id));
-  if (p) p.lastGps = { lat, lng, accuracyM, ts, sosId: sosId ?? null };
-  publish('GpsUpdated', { userId: String(ctx.user._id), lat, lng, accuracyM, ts, sosId: sosId ?? null });
+  if (p) p.lastGps = { lat, lng, accuracyM, ts, sosId: sosId ?? null, ...extra };
+  publish('GpsUpdated', { userId: String(ctx.user._id), lat, lng, accuracyM, ts, sosId: sosId ?? null, ...extra });
   return { ok: true };
 }
 

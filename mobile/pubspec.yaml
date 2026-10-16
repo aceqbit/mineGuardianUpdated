@@ -69,6 +69,8 @@ dependencies:
   fl_chart: ^1.2.0
   audioplayers: ^6.8.1
   flutter_tts: ^4.2.5
+  sensors_plus: ^7.1.1
+  video_player: ^2.14.1
 
 dev_dependencies:
   flutter_test:

@@ -15,3 +15,13 @@ Authoritative summary lives in CLAUDE.md section 5 and in code:
 - `Zone.evacExitId` (string, layout exit id, default null = nearest safe exit decided on the phone).
 - `PUT /api/zones/:id/evac-exit` (admin) body `{ exitId: string | null }`; unknown id -> 400 `INVALID_EXIT` with `details.validExitIds`; audited as `ZONE_EVAC_EXIT_SET`. Listed in `routes.additive.md`.
 - Read back as `zone.evacExitId` in `GET /api/auth/me`, `evacExitId` in `GET /api/zones/:id` and in each zone of `GET /api/admin/overview`. No new socket event or enum.
+
+## Additive change (CONTRACT commit X0): add-on pack X (CLAUDE.md section 23)
+- Enums: `ROUTE_MODE` (LEAST_HINDRANCE, MOST_LIGHT, MOST_AID, DIRECT), `AID_TYPE` (FIRST_AID, TOOL_STATION, PHONE, SCSR_CACHE, FIRE_EXTINGUISHER), `POSITION_SOURCE` (GPS, FUSED, PDR), `SAFETY_ITEM_KIND` (RULE, REACT, PREVENT, LESSON), `VOICE_CALL_STATUS` (QUEUED, RINGING, IN_PROGRESS, COMPLETED, FAILED, DRY_RUN), `PRESENCE` (LIVE, STALE, OFFLINE).
+- Server→client: `profile:updated {userId, changed[]}`, `tracking:positions {positions[]}` (1 s throttle), `safety:feed {date, version}`, `voice:call_status {callId, status, targetLabel}`.
+- `gps:update` takes optional `headingDeg` [0,360), `speedMps` [0,20], `source` (POSITION_SOURCE, default GPS), `tunnelId`; `GpsUpdated` carries them (null when absent). Old clients are unaffected.
+- Bus: `ProfileChanged{userId, changed[]}`, `SafetyFeedUpdated{date, version}`.
+- REST (listed in `routes.additive.md`): `/api/profiles*`, `/api/tracking/{live,surface-route}`, `/api/voice/{call,call/:callId/hangup,status}`, `/api/safety-feed{,/today,/refresh}`.
+- Collections: `safety_feed`, `voice_calls`, `live_positions`. Layout: `kind: aid` points and optional tunnel `lightLux`.
+- Flutter routes: `/worker/profiles /supervisor/profiles /admin/profiles /profiles/:userId /worker/map /supervisor/live-map /admin/live-map /worker/safety`.
+- Packages (only manifest edit since Step 0): Flutter `sensors_plus`, `video_player`; Node `ws`.

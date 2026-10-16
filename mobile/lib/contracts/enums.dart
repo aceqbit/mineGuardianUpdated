@@ -310,3 +310,87 @@ enum ContactCategory implements WireEnum {
   final IconData icon;
   static ContactCategory fromWire(String w) => _fromWire(values, w, 'ContactCategory');
 }
+
+// ---- Add-on pack X (CLAUDE.md section 23, CONTRACT commit X0). Additive only. ----
+
+enum RouteMode implements WireEnum {
+  leastHindrance('LEAST_HINDRANCE', 'Least hindrance', 'Fewest obstacles', Icons.verified_user),
+  mostLight('MOST_LIGHT', 'Most light', 'Best lit tunnels', Icons.light_mode),
+  mostAid('MOST_AID', 'Most help', 'Most tools and aid points', Icons.medical_services),
+  direct('DIRECT', 'Direct', 'Shortest distance', Icons.straight);
+
+  const RouteMode(this.wire, this.label, this.hint, this.icon);
+  @override
+  final String wire;
+  final String label;
+  final String hint;
+  final IconData icon;
+  static RouteMode fromWire(String w) => _fromWire(values, w, 'RouteMode');
+}
+
+enum AidType implements WireEnum {
+  firstAid('FIRST_AID', 'First aid', Icons.medical_services),
+  toolStation('TOOL_STATION', 'Tool station', Icons.handyman),
+  phone('PHONE', 'Phone', Icons.phone_in_talk),
+  scsrCache('SCSR_CACHE', 'Self-rescuer cache', Icons.air),
+  fireExtinguisher('FIRE_EXTINGUISHER', 'Extinguisher', Icons.fire_extinguisher);
+
+  const AidType(this.wire, this.label, this.icon);
+  @override
+  final String wire;
+  final String label;
+  final IconData icon;
+  static AidType fromWire(String w) => _fromWire(values, w, 'AidType');
+}
+
+enum PositionSource implements WireEnum {
+  gps('GPS'),
+  fused('FUSED'),
+  pdr('PDR');
+
+  const PositionSource(this.wire);
+  @override
+  final String wire;
+  static PositionSource fromWire(String w) => _fromWire(values, w, 'PositionSource');
+}
+
+enum SafetyItemKind implements WireEnum {
+  rule('RULE', 'Rule of the day', Icons.gavel),
+  react('REACT', 'How to react', Icons.emergency),
+  prevent('PREVENT', 'How to prevent', Icons.shield),
+  lesson('LESSON', 'Lesson learned', Icons.menu_book);
+
+  const SafetyItemKind(this.wire, this.label, this.icon);
+  @override
+  final String wire;
+  final String label;
+  final IconData icon;
+  static SafetyItemKind fromWire(String w) => _fromWire(values, w, 'SafetyItemKind');
+}
+
+enum VoiceCallStatus implements WireEnum {
+  queued('QUEUED', 'Calling…'),
+  ringing('RINGING', 'Ringing'),
+  inProgress('IN_PROGRESS', 'AI agent speaking'),
+  completed('COMPLETED', 'Call ended'),
+  failed('FAILED', 'Call failed'),
+  dryRun('DRY_RUN', 'Dry run — no real call placed');
+
+  const VoiceCallStatus(this.wire, this.label);
+  @override
+  final String wire;
+  final String label;
+  static VoiceCallStatus fromWire(String w) => _fromWire(values, w, 'VoiceCallStatus');
+  bool get isFinal => this == completed || this == failed || this == dryRun;
+}
+
+enum Presence implements WireEnum {
+  live('LIVE'),
+  stale('STALE'),
+  offline('OFFLINE');
+
+  const Presence(this.wire);
+  @override
+  final String wire;
+  static Presence fromWire(String w) => _fromWire(values, w, 'Presence');
+}
