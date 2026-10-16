@@ -31,6 +31,9 @@ const userSchema = new Schema(
     shift: { type: String, enum: SHIFT },
     emergencyContact: { name: String, relation: String, e164: String },
     address: String,
+    // Add-on X1 (profile manager): admin-edited, optional.
+    certifications: { type: [{ _id: false, name: String, issuedAt: Date, expiresAt: Date }], default: undefined },
+    medicalNotes: String,
     fcmTokens: { type: [String], default: [] },
     lastLoginAt: Date,
   },

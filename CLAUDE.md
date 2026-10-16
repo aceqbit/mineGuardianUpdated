@@ -481,12 +481,12 @@ New env vars, all optional (`backend/.env.example`, parsed in `env.js`): `TRACKI
 - Hazards reported (count by status plus the last 5) and SOS history.
 - For supervisors: reviews decided and SLA reliability.
 - Accounted status while a crisis is ACTIVE, and live presence plus last position (from 23.3).
-- An optional admin-editable block `User.profile{designation, bloodGroup, experienceYears, certifications[{name, issuedAt, expiresAt}], medicalNotes}`. Empty fields render `—`. A certification that expires within 30 days shows a warning chip.
+- Optional admin-editable fields on `User` (the existing top-level `designation`, `bloodGroup`, `experienceYears`, `dateOfJoining`, plus the new `certifications[{name, issuedAt, expiresAt}]` and `medicalNotes`). Empty fields render `—`. A certification that expires within 30 days shows a warning chip.
 
 **API (`modules/profiles`):**
 - `GET /api/profiles?role&zoneId&q&limit&cursor`
 - `GET /api/profiles/:userId`: the shape is trimmed by the viewer's role; outside the viewer's scope it returns 403 `FORBIDDEN_SCOPE`.
-- `PATCH /api/profiles/:userId`: an admin may edit the profile block, status, zone and `phone.e164` (validated E.164); a user editing themselves may change `profile.designation` only. Audited as `PROFILE_UPDATED`.
+- `PATCH /api/profiles/:userId` (strict zod body): an admin may edit those fields, status, shift, a miner's zone (supervisors move via `PUT /api/zones/:id/supervisors`, else 400 `USE_ZONE_SUPERVISORS`) and `phoneE164` (validated E.164); a user editing themselves may change `designation` only (else 403 `FORBIDDEN_FIELD`). Audited as `PROFILE_UPDATED` with field names only, never values.
 - The aggregation reads raw collections with one query per section under `Promise.all`; p95 ≤ 300 ms for a zone of 20.
 
 **Live updates (no refresh button needed):**
