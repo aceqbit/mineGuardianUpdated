@@ -8,7 +8,10 @@ import 'core/api/api_client.dart';
 import 'core/auth/auth_repository.dart';
 import 'core/auth/session_bloc.dart';
 import 'core/db/cache_repository.dart';
+import 'core/db/layout_repository.dart';
 import 'core/db/local_db.dart';
+import 'core/location/live_tracker.dart';
+import 'core/location/tracking_controller.dart';
 import 'core/socket/socket_service.dart';
 import 'core/speech/speech_prefs_store.dart';
 import 'core/sync/api_outbox_sender.dart';
@@ -41,6 +44,8 @@ Future<void> _boot() async {
   final engine = SyncEngine(outbox: db.outbox, sender: ApiOutboxSender(api: api, socket: socket), reachability: ConnectivityReachability(api: api), onRemoved: OutboxQueue.deleteFile);
   final queue = OutboxQueue(outbox: db.outbox, engine: engine);
   await SpeechPrefsStore.restore(db.cache); // saved voice and speed for read-aloud
+  // Add-on X3: live GPS + motion-sensor tracking for miners (shift window / crisis, after consent).
+  final tracking = TrackingController(session: session, socket: socket, cache: db.cache, api: api, tracker: LiveTracker(socket: socket, queue: queue, layouts: LayoutRepository(api: api, cache: db.cache)))..start();
 
   runApp(MultiRepositoryProvider(
     providers: [
@@ -50,6 +55,7 @@ Future<void> _boot() async {
       RepositoryProvider<CacheRepository>.value(value: db.cache),
       RepositoryProvider<SyncEngine>.value(value: engine),
       RepositoryProvider<OutboxQueue>.value(value: queue),
+      RepositoryProvider<TrackingController>.value(value: tracking),
     ],
     child: BlocProvider<SessionBloc>.value(
       value: session,

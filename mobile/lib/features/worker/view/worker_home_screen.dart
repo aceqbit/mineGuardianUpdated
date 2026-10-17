@@ -11,6 +11,7 @@ import '../../../app/ui/media_tile.dart';
 import '../../../app/ui/section_header.dart';
 import '../../../app/ui/sync_indicator.dart';
 import '../../../core/sync/sync_engine.dart';
+import '../../live_map/widgets/live_tracking_pill.dart';
 import '../../../contracts/routes.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/auth/session_bloc.dart';
@@ -111,7 +112,7 @@ class _WorkerHomeViewState extends State<_WorkerHomeView> with WidgetsBindingObs
         NavDest(label: 'Leaderboard', icon: Icons.leaderboard),
         NavDest(label: 'Rewards', icon: Icons.emoji_events),
       ],
-      actions: [SyncIndicator(engine: context.read<SyncEngine>()), if (!compact) Padding(padding: const EdgeInsets.only(right: Space.md, left: Space.md), child: sos)],
+      actions: [const LiveTrackingPill(), SyncIndicator(engine: context.read<SyncEngine>()), if (!compact) Padding(padding: const EdgeInsets.only(right: Space.md, left: Space.md), child: sos)],
       floatingActionButton: compact ? sos : null,
       body: BlocBuilder<WorkerHomeBloc, WorkerHomeState>(builder: (context, s) {
         if (s.status == WorkerHomeStatus.failure) {

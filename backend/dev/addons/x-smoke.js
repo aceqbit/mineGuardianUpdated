@@ -136,6 +136,57 @@ try {
     const e = await me.waitFor('profile:updated', (x) => x.data.changed.includes('hazards'));
     return `changed=${e.data.changed.join(',')}`;
   });
+
+  // ---------------- X3 live tracking ----------------
+  await step('tracking: gps:update rejects a bad heading/source, accepts fused fields', async () => {
+    const s = await sock(m1);
+    const bad = await s.emit('gps:update', { lat: 23.745, lng: 86.412, accuracyM: 4, ts: new Date().toISOString(), headingDeg: 400 });
+    const bad2 = await s.emit('gps:update', { lat: 23.745, lng: 86.412, accuracyM: 4, ts: new Date().toISOString(), source: 'MAGIC' });
+    const ok = await s.emit('gps:update', { lat: 23.745, lng: 86.412, accuracyM: 4, ts: new Date().toISOString(), headingDeg: 90, speedMps: 1.1, source: 'FUSED', tunnelId: 'T-J1-J2' });
+    expect(bad.error === 'INVALID_HEADING' && bad2.error === 'INVALID_SOURCE' && ok.ok === true, JSON.stringify([bad, bad2, ok]));
+  });
+  await step('tracking: a walking miner moves on the admin and own-zone supervisor feeds, not on Z-B', async () => {
+    const adm = await sock(ids.admin);
+    const sup = await sock(ids.supA);
+    const supB = await sock(ids.supB);
+    const walker = await sock(m2);
+    adm.clear();
+    sup.clear();
+    supB.clear();
+    for (let i = 0; i < 5; i += 1) {
+      const ack = await walker.emit('gps:update', { lat: 23.745 + i * 0.00002, lng: 86.412, accuracyM: 6, ts: new Date().toISOString(), headingDeg: 0, speedMps: 1.2, source: 'GPS' });
+      expect(ack.ok, JSON.stringify(ack));
+      await sleep(1100);
+    }
+    const seen = adm.events.filter((x) => x.name === 'tracking:positions').flatMap((x) => x.data.data.positions).filter((p) => p.userId === m2);
+    const lats = [...new Set(seen.map((p) => p.lat))];
+    expect(lats.length >= 4, `admin saw ${lats.length} distinct positions`);
+    expect(lats[lats.length - 1] > lats[0], 'not moving north');
+    expect(seen.at(-1).presence === 'LIVE' && seen.at(-1).name === 'XT XMIN-A2', JSON.stringify(seen.at(-1)));
+    expect(sup.events.some((x) => x.name === 'tracking:positions' && x.data.data.positions.some((p) => p.userId === m2)), 'Z-A supervisor saw nothing');
+    expect(!supB.events.some((x) => x.name === 'tracking:positions' && x.data.data.positions.some((p) => p.zoneId === ids.zoneA)), 'Z-B supervisor received Z-A positions');
+    const perSec = adm.events.filter((x) => x.name === 'tracking:positions').length;
+    expect(perSec <= 7, `${perSec} admin emits in ~5.5 s (throttle is 1/s)`);
+    return `${lats.length} positions, ${perSec} emits`;
+  });
+  await step('tracking: live snapshot scoped (supervisor own zone, miner refused)', async () => {
+    const a = await api('/api/tracking/live', ids.admin);
+    const s = await api('/api/tracking/live', ids.supA);
+    const x = await api(`/api/tracking/live?zoneId=${ids.zoneB}`, ids.supA);
+    const m = await api('/api/tracking/live', m1);
+    expect(a.status === 200 && a.data.positions.some((p) => p.userId === m2), `admin ${a.status}`);
+    expect(s.status === 200 && s.data.positions.every((p) => p.zoneId === ids.zoneA), `sup ${s.status}`);
+    expect(x.status === 403 && m.status === 403, `${x.status} ${m.status}`);
+  });
+  await step('tracking: profile shows the live presence', async () => {
+    const r = await api(`/api/profiles/${m2}`, ids.supA);
+    expect(r.data.profile.presence?.presence === 'LIVE', JSON.stringify(r.data.profile.presence));
+  });
+  await step('tracking: surface route without ORS_API_KEY is 503 (MANUAL: set the key)', async () => {
+    const r = await api('/api/tracking/surface-route?fromLat=23.74&fromLng=86.41&toLat=23.75&toLng=86.42', m1);
+    expect([200, 503].includes(r.status), `status ${r.status}`);
+    return r.status === 503 ? 'not configured' : `${r.data.distanceM} m`;
+  });
 } finally {
   for (const s of sockets) s.close();
   child.kill();

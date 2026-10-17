@@ -16,6 +16,9 @@ class CacheKeys {
   static const zoneSupervisors = 'zone_supervisors';
   static const openHazards = 'open_hazards';
   static const firstAidVersion = 'first_aid_version';
+  // add-on X3 live tracking
+  static const trackingConsent = 'tracking_consent';
+  static const trackingEnabled = 'tracking_enabled';
 }
 
 class SqliteCacheRepository implements CacheRepository {
