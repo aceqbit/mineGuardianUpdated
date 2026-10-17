@@ -233,6 +233,25 @@ try {
     const other = await api(`/api/voice/call/${callId}/hangup`, m2, { method: 'POST' });
     expect(r.status === 200 && r.data.status === 'DRY_RUN' && other.status === 403, `${r.status} ${JSON.stringify(r.data)} ${other.status}`);
   });
+
+  // ---------------- X6 safety feed ----------------
+  await step('safety feed: a stored day reads back with sources and storyboard explainers', async () => {
+    const r = await api('/api/safety-feed?date=2026-01-01', m1);
+    expect(r.status === 200 && r.data.feed.items[0].sources[0].domain === 'dgms.gov.in' && r.data.feed.videos[0].kind === 'storyboard', JSON.stringify(r.data));
+  });
+  await step('safety feed: today without GEMINI_API_KEY is 503 FEED_NOT_CONFIGURED, never canned rules (MANUAL with a key)', async () => {
+    const r = await api('/api/safety-feed/today', m1);
+    if (process.env.XTEST_LIVE_AI === '1') {
+      expect([200, 404].includes(r.status), `status ${r.status}`);
+      return r.status === 200 ? `${r.data.feed.items.length} grounded items` : 'still generating';
+    }
+    expect(r.status === 503 && r.data.error.code === 'FEED_NOT_CONFIGURED', JSON.stringify(r.data));
+    return 'not configured';
+  });
+  await step('safety feed: only an admin may refresh', async () => {
+    const r = await api('/api/safety-feed/refresh', m1, { method: 'POST' });
+    expect(r.status === 403, `status ${r.status}`);
+  });
 } finally {
   for (const s of sockets) s.close();
   child.kill();

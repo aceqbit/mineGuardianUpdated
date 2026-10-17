@@ -12,6 +12,7 @@ import '../../../app/ui/section_header.dart';
 import '../../../app/ui/sync_indicator.dart';
 import '../../../core/sync/sync_engine.dart';
 import '../../live_map/widgets/live_tracking_pill.dart';
+import '../../safety_feed/widgets/safety_bar.dart';
 import '../../../contracts/routes.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/auth/session_bloc.dart';
@@ -114,7 +115,8 @@ class _WorkerHomeViewState extends State<_WorkerHomeView> with WidgetsBindingObs
       ],
       actions: [const LiveTrackingPill(), SyncIndicator(engine: context.read<SyncEngine>()), if (!compact) Padding(padding: const EdgeInsets.only(right: Space.md, left: Space.md), child: sos)],
       floatingActionButton: compact ? sos : null,
-      body: BlocBuilder<WorkerHomeBloc, WorkerHomeState>(builder: (context, s) {
+      // Add-on X6: the daily safety bar sits under the page, above the navigation.
+      body: Column(children: [Expanded(child: BlocBuilder<WorkerHomeBloc, WorkerHomeState>(builder: (context, s) {
         if (s.status == WorkerHomeStatus.failure) {
           return EmptyState(icon: Icons.cloud_off, title: 'Could not load', message: 'Pull down to try again', actionLabel: 'Retry', onAction: () => context.read<WorkerHomeBloc>().add(const WorkerHomeStarted()));
         }
@@ -148,7 +150,7 @@ class _WorkerHomeViewState extends State<_WorkerHomeView> with WidgetsBindingObs
             ],
           ),
         );
-      }),
+      })), const SafetyBar()]),
     );
   }
 }
