@@ -136,6 +136,7 @@ class _WorkerHomeViewState extends State<_WorkerHomeView> with WidgetsBindingObs
                     MediaTile(imageUrl: AppImages.hazard, icon: Icons.warning_amber, title: 'Report Hazard', subtitle: 'Photo, category, location', onTap: () => context.go(Routes.workerHazard)),
                     MediaTile(imageUrl: AppImages.leaderboard, icon: Icons.leaderboard, title: 'Leaderboard', subtitle: 'Live safety ranking', onTap: () => context.go(Routes.leaderboard)),
                     MediaTile(imageUrl: AppImages.rewards, icon: Icons.emoji_events, title: 'Rewards', subtitle: 'Honours and badges', onTap: () => context.go(Routes.rewards)),
+                    MediaTile(imageUrl: AppImages.supervisorFeed, icon: Icons.badge, title: 'My crew', subtitle: 'Your profile and your crew', onTap: () => context.go(Routes.workerProfiles)),
                     MediaTile(imageUrl: AppImages.adminCrisis, icon: Icons.alt_route, title: 'Exit navigation', subtitle: 'Live map to the nearest exit', onTap: () => context.go(Routes.workerSosEvac)),
                   ]),
                   const SizedBox(height: Space.x2),

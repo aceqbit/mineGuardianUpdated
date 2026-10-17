@@ -136,7 +136,7 @@ export async function getProfile(viewer, userId, now = new Date()) {
   const zone = u.zoneId ? await Zone.findById(u.zoneId) : null;
   const since30 = new Date(now.getTime() - 30 * DAY_MS);
 
-  const [checkins, snapRows, photos, pres, hazards, hazardCounts, sos, rewards, crisis] = await Promise.all([
+  const [checkins, snapRows, photos, pres, hazards, hazardCounts, sos, rewards, crisis, history] = await Promise.all([
     u.role === 'miner' ? CheckIn.find({ workerId: id, createdAt: { $gte: since30 } }).sort({ createdAt: -1 }) : [],
     safe(() => raw('score_snapshots').aggregate([{ $match: u.zoneId ? { zoneId: u.zoneId } : { userId: id } }, { $sort: { day: -1 } }, { $group: { _id: '$userId', s: { $first: '$$ROOT' } } }]).toArray(), []),
     latestPhotos([id]),
@@ -146,6 +146,7 @@ export async function getProfile(viewer, userId, now = new Date()) {
     SosEvent.find({ workerId: id }).sort({ createdAt: -1 }).limit(5),
     safe(() => raw('rewards').find({ userId: id }).sort({ month: -1 }).limit(12).toArray(), []),
     safe(() => raw('crises').findOne({ status: 'ACTIVE', ...(u.zoneId ? { zoneIds: u.zoneId } : {}) }), null),
+    safe(() => raw('score_snapshots').find({ userId: id }, { projection: { day: 1, score: 1 } }).sort({ day: -1 }).limit(30).toArray(), []),
   ]);
   const sosCount = await SosEvent.countDocuments({ workerId: id });
   const reviews = await safe(async () => new Map((await raw('compliance_reviews').find({ checkInId: { $in: checkins.map((c) => c._id) } }).toArray()).map((r) => [String(r.checkInId), r])), new Map());
@@ -189,7 +190,7 @@ export async function getProfile(viewer, userId, now = new Date()) {
       checkInId: latest && istDay(latest.createdAt) === istDay(now) ? String(latest._id) : null,
     } : null,
     calendar: u.role === 'miner' ? complianceCalendar(checkins, reviews, now) : null,
-    score: mine ? { score: mine.score, streak: mine.streak ?? 0, xp: mine.xp ?? 0, badges: mine.badges ?? [], riskBand: mine.riskBand ?? null, rank: rank?.rank ?? null, rankOf: rank?.of ?? null, components: mine.components ?? null, day: mine.day } : null,
+    score: mine ? { score: mine.score, streak: mine.streak ?? 0, xp: mine.xp ?? 0, badges: mine.badges ?? [], riskBand: mine.riskBand ?? null, rank: rank?.rank ?? null, rankOf: rank?.of ?? null, components: mine.components ?? null, day: mine.day, history: history.reverse().map((h) => ({ day: h.day, score: h.score })) } : null,
     rewards: rewards.map((r) => ({ month: r.month, key: r.key, title: r.title, rank: r.rank, stars: r.stars, demo: r.demo !== false })),
     hazards: {
       counts: Object.fromEntries(hazardCounts.map((h) => [h._id, h.n])),

@@ -45,6 +45,9 @@ void main() {
       'white on ink900': (Colors.white, c.ink900),
       'amber500 on ink900': (c.amber500, c.ink900),
       'slate300 on ink900': (c.slate300, c.ink900),
+      'white on roleAdmin': (Colors.white, c.roleAdmin),
+      'roleAdminText on surface': (c.roleAdminText, c.surface),
+      'roleAdminText on bg': (c.roleAdminText, c.bg),
     };
     for (final p in pairs.entries) {
       test('${entry.key}: ${p.key} meets WCAG AA (4.5:1)', () {

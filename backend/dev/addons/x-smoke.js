@@ -88,7 +88,7 @@ try {
     const p = r.data.profile;
     expect(p.level === 'crew', p.level);
     for (const k of ['email', 'phoneMasked', 'medicalNotes', 'calendar', 'hazards']) expect(p[k] === undefined, `${k} leaked`);
-    expect(p.score?.riskBand === undefined && p.score?.score === undefined, 'score leaked');
+    expect(p.score?.riskBand === undefined && p.score?.score === undefined && p.score?.history === undefined, 'score leaked');
     expect(p.score?.rank === 1, `rank ${p.score?.rank}`);
   });
   await step('profiles: own profile has today, 30-day calendar, no risk band', async () => {
@@ -99,6 +99,7 @@ try {
     expect(p.today.verdict === 'NON_COMPLIANT', `today ${JSON.stringify(p.today)}`);
     expect(p.hazards.counts.OPEN === 1, `hazards ${JSON.stringify(p.hazards)}`);
     expect(p.score.riskBand === undefined && p.score.score === 800, JSON.stringify(p.score));
+    expect(p.score.history.length === 1 && p.score.history[0].score === 800, 'score history');
     expect(p.phoneMasked && !p.phoneMasked.includes('500111'), 'phone not masked');
   });
   await step('profiles: supervisor detail shows team stats', async () => {

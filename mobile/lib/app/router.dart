@@ -20,6 +20,7 @@ import '../features/worker/view/hazard_report_screen.dart';
 import '../features/worker/view/worker_home_screen.dart';
 import 'ui/page_transitions.dart';
 import '../phase2/phase2_routes.dart';
+import '../addons/addon_routes.dart';
 import '../features/dev_gallery/view/ui_gallery_screen.dart';
 import 'global_overlays.dart';
 
@@ -89,6 +90,7 @@ GoRouter buildRouter(SessionBloc session, {List<RouteBase> extraRoutes = const [
           GoRoute(path: Routes.admin, pageBuilder: (c, s) => fadeThroughPage(key: s.pageKey, child: const AdminHomeScreen())),
           if (kDebugMode) GoRoute(path: Routes.devUi, builder: (c, s) => const UiGalleryScreen()),
           ...phase2Routes(),
+          ...addonRoutes(),
           ...extraRoutes,
         ],
       ),
