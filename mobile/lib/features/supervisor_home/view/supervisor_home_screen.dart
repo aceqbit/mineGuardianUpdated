@@ -194,6 +194,7 @@ class _ViewState extends State<_View> {
         final actions = QuickActions(actions: [
           QuickAction(icon: Icons.rate_review, label: 'Review next', badge: s.awaitingReview, onTap: () => _reviewNext(s)),
           QuickAction(icon: Icons.crisis_alert, label: 'Crisis view', tone: s.sos.isNotEmpty ? c.crisis : c.danger, onTap: () => context.go(Routes.crisisView)),
+          QuickAction(icon: Icons.map, label: 'Live map', onTap: () => context.go(Routes.supervisorLiveMap)),
           QuickAction(icon: Icons.badge, label: 'Profiles', onTap: () => context.go(Routes.supervisorProfiles)),
           QuickAction(icon: Icons.leaderboard, label: 'Leaderboard', onTap: () => context.go(Routes.leaderboard)),
           QuickAction(icon: Icons.emoji_events, label: 'Rewards', onTap: () => context.go(Routes.rewards)),

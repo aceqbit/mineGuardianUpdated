@@ -12,7 +12,7 @@ import { emitTo } from '../../core/socket.js';
 import { logger } from '../../core/logger.js';
 import { env } from '../../config/env.js';
 import { User } from '../../models/User.js';
-import { parseOrs, planEmits, presenceChanges, snapshotScope, toWire } from './tracking.logic.js';
+import { parseOrs, planEmits, presenceChanges, routingHazard, snapshotScope, toWire } from './tracking.logic.js';
 
 const EMIT_MS = 1000;
 const SWEEP_MS = 5000;
@@ -86,6 +86,21 @@ router.get(
     const now = Date.now();
     const positions = [...live.values()].filter((e) => !scope.zoneId || e.zoneId === scope.zoneId).map((e) => toWire(e, now, staleSec(), offlineSec()));
     res.json({ positions, staleSec: staleSec(), offlineSec: offlineSec(), enabled: env.TRACKING_ENABLED !== false });
+  }),
+);
+
+/** Active hazards for on-device routing (any signed-in role): position, category, AI severity only — no photo, reporter or notes. */
+router.get(
+  '/hazards',
+  authenticate(),
+  asyncHandler(async (_req, res) => {
+    const rows = await mongoose.connection
+      .collection('hazards')
+      .find({ status: { $in: ['OPEN', 'ACKNOWLEDGED'] } }, { projection: { category: 1, status: 1, location: 1, zoneId: 1, 'ai.severity': 1, 'ai.severityConfidence': 1, createdAt: 1 } })
+      .sort({ createdAt: -1 })
+      .limit(200)
+      .toArray();
+    res.json({ hazards: rows.map(routingHazard).filter(Boolean) });
   }),
 );
 

@@ -55,3 +55,11 @@ test('ORS parse', () => {
   assert.equal(parseOrs({}), null);
   assert.equal(parseOrs({ features: [{ properties: { summary: {} }, geometry: { coordinates: [[1, 2]] } }] }), null);
 });
+
+test('routing hazard: minimal shape, no location -> dropped', async () => {
+  const { routingHazard } = await import('../src/modules/tracking/tracking.logic.js');
+  const h = routingHazard({ _id: 'h1', category: 'ROOF_FALL', status: 'OPEN', zoneId: 'z', location: { type: 'Point', coordinates: [86.41, 23.74] }, ai: { severity: 'CRITICAL', severityConfidence: 0.9 }, storagePath: 'x', reporterId: 'r' });
+  assert.deepEqual(Object.keys(h).sort(), ['category', 'createdAt', 'id', 'locationLatLng', 'severity', 'severityConfidence', 'status', 'zoneId']);
+  assert.deepEqual(h.locationLatLng, { lat: 23.74, lng: 86.41 });
+  assert.equal(routingHazard({ _id: 'h2', category: 'OTHER' }), null);
+});

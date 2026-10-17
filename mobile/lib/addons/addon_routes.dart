@@ -2,6 +2,8 @@ import 'package:go_router/go_router.dart';
 
 import '../app/ui/page_transitions.dart';
 import '../contracts/routes.dart';
+import '../features/live_map/view/fleet_map_screen.dart';
+import '../features/live_map/view/live_map_screen.dart';
 import '../features/profiles/view/profile_detail_screen.dart';
 import '../features/profiles/view/profiles_screen.dart';
 
@@ -11,5 +13,8 @@ List<RouteBase> addonRoutes() => [
       GoRoute(path: Routes.workerProfiles, pageBuilder: (c, s) => sharedAxisPage(key: s.pageKey, child: const ProfilesScreen())),
       GoRoute(path: Routes.supervisorProfiles, pageBuilder: (c, s) => sharedAxisPage(key: s.pageKey, child: const ProfilesScreen())),
       GoRoute(path: Routes.adminProfiles, pageBuilder: (c, s) => sharedAxisPage(key: s.pageKey, child: const ProfilesScreen())),
+      GoRoute(path: Routes.workerMap, pageBuilder: (c, s) => fadeThroughPage(key: s.pageKey, child: const LiveMapScreen())),
+      GoRoute(path: Routes.supervisorLiveMap, pageBuilder: (c, s) => fadeThroughPage(key: s.pageKey, child: const FleetMapScreen())),
+      GoRoute(path: Routes.adminLiveMap, pageBuilder: (c, s) => fadeThroughPage(key: s.pageKey, child: const FleetMapScreen())),
       GoRoute(path: Routes.profileDetail, pageBuilder: (c, s) => sharedAxisPage(key: s.pageKey, child: ProfileDetailScreen(userId: s.pathParameters['userId']!))),
     ];

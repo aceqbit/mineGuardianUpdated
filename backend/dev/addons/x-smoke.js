@@ -183,6 +183,12 @@ try {
     const r = await api(`/api/profiles/${m2}`, ids.supA);
     expect(r.data.profile.presence?.presence === 'LIVE', JSON.stringify(r.data.profile.presence));
   });
+  await step('tracking: routing hazards readable by a miner, minimal fields only', async () => {
+    const r = await api('/api/tracking/hazards', m1);
+    expect(r.status === 200 && r.data.hazards.length >= 1, `status ${r.status}`);
+    const h = r.data.hazards[0];
+    expect(h.locationLatLng && h.category && h.storagePath === undefined && h.reporterId === undefined, JSON.stringify(h));
+  });
   await step('tracking: surface route without ORS_API_KEY is 503 (MANUAL: set the key)', async () => {
     const r = await api('/api/tracking/surface-route?fromLat=23.74&fromLng=86.41&toLat=23.75&toLng=86.42', m1);
     expect([200, 503].includes(r.status), `status ${r.status}`);

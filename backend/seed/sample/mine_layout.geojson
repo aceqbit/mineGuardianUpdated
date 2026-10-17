@@ -114,7 +114,8 @@
         "capacity": 20,
         "slopePct": 1.5,
         "airway": "intake",
-        "status": "open"
+        "status": "open",
+        "lightLux": 150
       },
       "geometry": {
         "type": "LineString",
@@ -141,7 +142,8 @@
         "capacity": 20,
         "slopePct": 1.5,
         "airway": "intake",
-        "status": "open"
+        "status": "open",
+        "lightLux": 150
       },
       "geometry": {
         "type": "LineString",
@@ -168,7 +170,8 @@
         "capacity": 20,
         "slopePct": 1.5,
         "airway": "intake",
-        "status": "open"
+        "status": "open",
+        "lightLux": 150
       },
       "geometry": {
         "type": "LineString",
@@ -195,7 +198,8 @@
         "capacity": 20,
         "slopePct": 1.5,
         "airway": "intake",
-        "status": "open"
+        "status": "open",
+        "lightLux": 0
       },
       "geometry": {
         "type": "LineString",
@@ -222,7 +226,8 @@
         "capacity": 20,
         "slopePct": 1.5,
         "airway": "intake",
-        "status": "open"
+        "status": "open",
+        "lightLux": 150
       },
       "geometry": {
         "type": "LineString",
@@ -249,7 +254,8 @@
         "capacity": 20,
         "slopePct": 1.5,
         "airway": "intake",
-        "status": "open"
+        "status": "open",
+        "lightLux": 150
       },
       "geometry": {
         "type": "LineString",
@@ -276,7 +282,8 @@
         "capacity": 20,
         "slopePct": 1.5,
         "airway": "intake",
-        "status": "open"
+        "status": "open",
+        "lightLux": 0
       },
       "geometry": {
         "type": "LineString",
@@ -303,7 +310,8 @@
         "capacity": 20,
         "slopePct": 1.5,
         "airway": "intake",
-        "status": "open"
+        "status": "open",
+        "lightLux": 150
       },
       "geometry": {
         "type": "LineString",
@@ -330,7 +338,8 @@
         "capacity": 20,
         "slopePct": 1.5,
         "airway": "intake",
-        "status": "open"
+        "status": "open",
+        "lightLux": 150
       },
       "geometry": {
         "type": "LineString",
@@ -357,7 +366,8 @@
         "capacity": 20,
         "slopePct": 1.5,
         "airway": "intake",
-        "status": "open"
+        "status": "open",
+        "lightLux": 150
       },
       "geometry": {
         "type": "LineString",
@@ -384,7 +394,8 @@
         "capacity": 12,
         "slopePct": -1,
         "airway": "return",
-        "status": "open"
+        "status": "open",
+        "lightLux": 20
       },
       "geometry": {
         "type": "LineString",
@@ -411,7 +422,8 @@
         "capacity": 12,
         "slopePct": -1,
         "airway": "return",
-        "status": "open"
+        "status": "open",
+        "lightLux": 20
       },
       "geometry": {
         "type": "LineString",
@@ -438,7 +450,8 @@
         "capacity": 12,
         "slopePct": -1,
         "airway": "return",
-        "status": "open"
+        "status": "open",
+        "lightLux": 20
       },
       "geometry": {
         "type": "LineString",
@@ -465,7 +478,8 @@
         "capacity": 12,
         "slopePct": -1,
         "airway": "return",
-        "status": "open"
+        "status": "open",
+        "lightLux": 20
       },
       "geometry": {
         "type": "LineString",
@@ -492,7 +506,8 @@
         "capacity": 12,
         "slopePct": -1,
         "airway": "return",
-        "status": "open"
+        "status": "open",
+        "lightLux": 20
       },
       "geometry": {
         "type": "LineString",
@@ -519,7 +534,8 @@
         "capacity": 12,
         "slopePct": -1,
         "airway": "return",
-        "status": "open"
+        "status": "open",
+        "lightLux": 20
       },
       "geometry": {
         "type": "LineString",
@@ -546,7 +562,8 @@
         "capacity": 12,
         "slopePct": -1,
         "airway": "return",
-        "status": "open"
+        "status": "open",
+        "lightLux": 20
       },
       "geometry": {
         "type": "LineString",
@@ -573,7 +590,8 @@
         "capacity": 12,
         "slopePct": -1,
         "airway": "return",
-        "status": "open"
+        "status": "open",
+        "lightLux": 20
       },
       "geometry": {
         "type": "LineString",
@@ -600,7 +618,8 @@
         "capacity": 12,
         "slopePct": -1,
         "airway": "return",
-        "status": "open"
+        "status": "open",
+        "lightLux": 20
       },
       "geometry": {
         "type": "LineString",
@@ -627,7 +646,8 @@
         "capacity": 12,
         "slopePct": -1,
         "airway": "return",
-        "status": "open"
+        "status": "open",
+        "lightLux": 20
       },
       "geometry": {
         "type": "LineString",
@@ -654,7 +674,8 @@
         "capacity": 10,
         "slopePct": 3,
         "airway": "intake",
-        "status": "open"
+        "status": "open",
+        "lightLux": 60
       },
       "geometry": {
         "type": "LineString",
@@ -681,7 +702,8 @@
         "capacity": 10,
         "slopePct": 3,
         "airway": "intake",
-        "status": "open"
+        "status": "open",
+        "lightLux": 60
       },
       "geometry": {
         "type": "LineString",
@@ -708,7 +730,8 @@
         "capacity": 10,
         "slopePct": 3,
         "airway": "intake",
-        "status": "open"
+        "status": "open",
+        "lightLux": 60
       },
       "geometry": {
         "type": "LineString",
@@ -735,7 +758,8 @@
         "capacity": 10,
         "slopePct": 3,
         "airway": "intake",
-        "status": "open"
+        "status": "open",
+        "lightLux": 60
       },
       "geometry": {
         "type": "LineString",
@@ -762,7 +786,8 @@
         "capacity": 10,
         "slopePct": 3,
         "airway": "intake",
-        "status": "open"
+        "status": "open",
+        "lightLux": 60
       },
       "geometry": {
         "type": "LineString",
@@ -789,7 +814,8 @@
         "capacity": 10,
         "slopePct": 3,
         "airway": "intake",
-        "status": "open"
+        "status": "open",
+        "lightLux": 60
       },
       "geometry": {
         "type": "LineString",
@@ -816,7 +842,8 @@
         "capacity": 10,
         "slopePct": 3,
         "airway": "intake",
-        "status": "open"
+        "status": "open",
+        "lightLux": 60
       },
       "geometry": {
         "type": "LineString",
@@ -843,7 +870,8 @@
         "capacity": 10,
         "slopePct": 3,
         "airway": "intake",
-        "status": "open"
+        "status": "open",
+        "lightLux": 60
       },
       "geometry": {
         "type": "LineString",
@@ -870,7 +898,8 @@
         "capacity": 10,
         "slopePct": 3,
         "airway": "intake",
-        "status": "open"
+        "status": "open",
+        "lightLux": 60
       },
       "geometry": {
         "type": "LineString",
@@ -897,7 +926,8 @@
         "capacity": 10,
         "slopePct": 3,
         "airway": "intake",
-        "status": "open"
+        "status": "open",
+        "lightLux": 60
       },
       "geometry": {
         "type": "LineString",
@@ -924,7 +954,8 @@
         "capacity": 10,
         "slopePct": 3,
         "airway": "intake",
-        "status": "open"
+        "status": "open",
+        "lightLux": 60
       },
       "geometry": {
         "type": "LineString",
@@ -951,7 +982,8 @@
         "capacity": 10,
         "slopePct": 3,
         "airway": "intake",
-        "status": "open"
+        "status": "open",
+        "lightLux": 60
       },
       "geometry": {
         "type": "LineString",
@@ -1353,6 +1385,278 @@
         "type": "Point",
         "coordinates": [
           86.4161776759327,
+          23.746
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "aid",
+        "id": "AID-FA-J2",
+        "aidType": "FIRST_AID",
+        "name": "First aid station J2",
+        "node": "J2"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          86.41323348610096,
+          23.746
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "aid",
+        "id": "AID-FA-J8",
+        "aidType": "FIRST_AID",
+        "name": "First aid station J8",
+        "node": "J8"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          86.41676651389905,
+          23.746
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "aid",
+        "id": "AID-TS-N2",
+        "aidType": "TOOL_STATION",
+        "name": "Tool station N2",
+        "node": "N2"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          86.41441116203366,
+          23.747077973409986
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "aid",
+        "id": "AID-TS-S4",
+        "aidType": "TOOL_STATION",
+        "name": "Tool station S4",
+        "node": "S4"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          86.41676651389905,
+          23.74492202659001
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "aid",
+        "id": "AID-PH-J0",
+        "aidType": "PHONE",
+        "name": "Phone at Main Shaft",
+        "node": "J0"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          86.41205581016828,
+          23.746
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "aid",
+        "id": "AID-PH-N5",
+        "aidType": "PHONE",
+        "name": "Phone at Incline Adit",
+        "node": "N5"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          86.41794418983173,
+          23.747077973409986
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "aid",
+        "id": "AID-PH-S2",
+        "aidType": "PHONE",
+        "name": "Phone at Return Air Shaft",
+        "node": "S2"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          86.41441116203366,
+          23.74492202659001
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "aid",
+        "id": "AID-SC-J5",
+        "aidType": "SCSR_CACHE",
+        "name": "Self-rescuer cache J5",
+        "node": "J5"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          86.415,
+          23.746
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "aid",
+        "id": "AID-SC-N3",
+        "aidType": "SCSR_CACHE",
+        "name": "Self-rescuer cache N3",
+        "node": "N3"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          86.41558883796635,
+          23.747077973409986
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "aid",
+        "id": "AID-SC-S1",
+        "aidType": "SCSR_CACHE",
+        "name": "Self-rescuer cache S1",
+        "node": "S1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          86.41323348610096,
+          23.74492202659001
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "aid",
+        "id": "AID-FE-J0",
+        "aidType": "FIRE_EXTINGUISHER",
+        "name": "Extinguisher J0",
+        "node": "J0"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          86.41205581016828,
+          23.746
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "aid",
+        "id": "AID-FE-J2",
+        "aidType": "FIRE_EXTINGUISHER",
+        "name": "Extinguisher J2",
+        "node": "J2"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          86.41323348610096,
+          23.746
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "aid",
+        "id": "AID-FE-J4",
+        "aidType": "FIRE_EXTINGUISHER",
+        "name": "Extinguisher J4",
+        "node": "J4"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          86.41441116203366,
+          23.746
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "aid",
+        "id": "AID-FE-J6",
+        "aidType": "FIRE_EXTINGUISHER",
+        "name": "Extinguisher J6",
+        "node": "J6"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          86.41558883796635,
+          23.746
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "aid",
+        "id": "AID-FE-J8",
+        "aidType": "FIRE_EXTINGUISHER",
+        "name": "Extinguisher J8",
+        "node": "J8"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          86.41676651389905,
+          23.746
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "aid",
+        "id": "AID-FE-J10",
+        "aidType": "FIRE_EXTINGUISHER",
+        "name": "Extinguisher J10",
+        "node": "J10"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          86.41794418983173,
           23.746
         ]
       }

@@ -566,12 +566,14 @@ New env vars, all optional (`backend/.env.example`, parsed in `env.js`): `TRACKI
 - If two modes produce the same path, draw it once and give it both labels.
 - Each route card shows distance, ETA (at 1.1 m/s, or at the live `speedMps` while moving), % lit, aid count, hazards passed and the chosen exit.
 - A turn-by-turn strip uses junction names. The route recomputes automatically when the fused position leaves it by more than 15 m or when a hazard or blocked edge appears.
-- The surface leg (exit to assembly point or hospital) uses OpenRouteService only when `ORS_API_KEY` is set. It goes through a backend proxy, `GET /api/tracking/surface-route`, so the key never reaches the client; without a key the surface leg is not shown. Public road routers have no tunnel data, so they are never used underground.
+- The surface leg (exit to assembly point or hospital) needs real surface points, which the layout does not carry yet. The backend proxy `GET /api/tracking/surface-route` (OpenRouteService, only when `ORS_API_KEY` is set; the key never reaches the client) is ready, and the app draws a surface leg only once the layout has assembly points. Public road routers have no tunnel data, so they are never used underground.
+
+**Hazards on the phone:** miners cannot read `GET /api/hazards` (staff only), so the map reads `GET /api/tracking/hazards` (any signed-in role; position, category and AI severity only, no photo or reporter) every 30 s while open, cached for offline.
 
 **Seed data needed for real routes:**
 - `build_layout.js` adds `lightLux` to every tunnel: trunk 150, cross-cuts 60, returns 20, and two dark spans at 0.
 - It adds aid points: first aid at J2 and J8, tool stations at N2 and S4, a phone at every exit, SCSR caches at J5, N3 and S1, and an extinguisher every 120 m along the trunk.
-- Layout validation also checks that every aid point is within 10 m of a junction or tunnel.
+- Layout validation also checks that every aid point is within 10 m of its junction. The seeded layout is version 2 (`LAYOUT_VERSION`), so phones (ETag) and the rerouter reload it. The live map never uses the built-in sample layout: without a real layout it says so.
 
 **Admin and supervisor live view (`/admin/live-map`, `/supervisor/live-map`):**
 - Every tracked miner moves on the map in real time: the snapshot first, then `tracking:positions`.

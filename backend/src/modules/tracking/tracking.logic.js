@@ -67,3 +67,14 @@ export function parseOrs(json) {
   if (!s || !Array.isArray(coords) || coords.length < 2) return null;
   return { distanceM: Math.round(s.distance ?? 0), durationSec: Math.round(s.duration ?? 0), coordinates: coords.map(([lng, lat]) => [lng, lat]) };
 }
+
+/** Hazard row -> the minimal shape phones route around (null without a location). */
+export function routingHazard(h) {
+  const c = h?.location?.coordinates;
+  if (!Array.isArray(c) || c.length < 2) return null;
+  return {
+    id: String(h._id), category: h.category, status: h.status, zoneId: h.zoneId ? String(h.zoneId) : null,
+    severity: h.ai?.severity ?? null, severityConfidence: h.ai?.severityConfidence ?? null,
+    locationLatLng: { lat: c[1], lng: c[0] }, createdAt: h.createdAt ? new Date(h.createdAt).toISOString() : null,
+  };
+}

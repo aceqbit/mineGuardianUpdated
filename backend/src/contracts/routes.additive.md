@@ -10,6 +10,7 @@ GET /api/profiles/:userId
 PATCH /api/profiles/:userId
 GET /api/tracking/live
 GET /api/tracking/surface-route
+GET /api/tracking/hazards
 POST /api/voice/call
 POST /api/voice/call/:callId/hangup
 POST /api/voice/status
