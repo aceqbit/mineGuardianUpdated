@@ -46,6 +46,9 @@ void main() {
       'amber500 on ink900': (c.amber500, c.ink900),
       'slate300 on ink900': (c.slate300, c.ink900),
       'white on roleAdmin': (Colors.white, c.roleAdmin),
+      'slate100 on ink900 (feature dock, light)': (c.slate100, c.ink900),
+      'slate100 on ink800 (feature dock, dark)': (c.slate100, c.ink800),
+      'slate300 on ink800 (dock role label)': (c.slate300, c.ink800),
       'roleAdminText on surface': (c.roleAdminText, c.surface),
       'roleAdminText on bg': (c.roleAdminText, c.bg),
     };
