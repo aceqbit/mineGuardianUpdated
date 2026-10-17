@@ -11,6 +11,7 @@ import '../../../app/ui/skeleton.dart';
 import '../../../app/ui/toast.dart';
 import '../../../core/api/api_client.dart';
 import '../../admin_home/widgets/admin_nav.dart';
+import '../../voice_call/widgets/ai_call_button.dart';
 import '../data/contacts_repository.dart';
 
 const realNumberWarning = 'Real emergency number. Only call in a real emergency.';
@@ -129,6 +130,18 @@ class _Body extends StatelessWidget {
                           Icon(it.category.icon, color: c.crisis, size: 28),
                           const SizedBox(width: Space.sm),
                           Expanded(child: Text(it.name, style: t.titleSmall, maxLines: 1, overflow: TextOverflow.ellipsis)),
+                          // Add-on X5: AI voice agent, one tap. Sized to the 28 px category icon so the fixed-height card does not
+                          // grow (28 px still meets the WCAG 2.2 24 px target-size minimum).
+                          IconButton(
+                            tooltip: 'AI agent call to ${it.name}',
+                            padding: EdgeInsets.zero,
+                            style: IconButton.styleFrom(tapTargetSize: MaterialTapTargetSize.shrinkWrap),
+                            constraints: const BoxConstraints.tightFor(width: 28, height: 28),
+                            iconSize: 22,
+                            color: c.info,
+                            icon: const Icon(Icons.support_agent),
+                            onPressed: () => showAiCallSheet(context, targetType: 'contact', targetId: it.id, targetLabel: it.name),
+                          ),
                         ]),
                         const SizedBox(height: Space.xs),
                         Text(it.displayNumber, style: t.titleLarge?.copyWith(fontWeight: FontWeight.w800)),

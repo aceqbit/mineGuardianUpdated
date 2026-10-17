@@ -194,6 +194,45 @@ try {
     expect([200, 503].includes(r.status), `status ${r.status}`);
     return r.status === 503 ? 'not configured' : `${r.data.distanceM} m`;
   });
+
+  // ---------------- X5 AI voice agent ----------------
+  let callId;
+  await step('voice: miner taps own supervisor -> AI call placed in dry run, live status on the socket', async () => {
+    const me = await sock(m1);
+    const r = await api('/api/voice/call', m1, { method: 'POST', json: { targetType: 'user', targetId: ids.supA, reason: 'roof noise at my face' } });
+    expect(r.status === 201, `status ${r.status} ${JSON.stringify(r.data)}`);
+    expect(r.data.status === 'DRY_RUN' && r.data.mode === 'say' && r.data.dryRun === true, JSON.stringify(r.data));
+    callId = r.data.callId;
+    const e = await me.waitFor('voice:call_status', (x) => x.data.callId === callId);
+    expect(e.data.status === 'DRY_RUN', JSON.stringify(e.data));
+    return `callId=${callId}`;
+  });
+  await step('voice: a second tap within 30 s is refused (CALL_COOLDOWN)', async () => {
+    const r = await api('/api/voice/call', m1, { method: 'POST', json: { targetType: 'user', targetId: ids.supA } });
+    expect(r.status === 429 && r.data.error.code === 'CALL_COOLDOWN' && r.data.error.details.retryAfterSec > 0, JSON.stringify(r.data));
+  });
+  await step('voice: scope (miner cannot call another zone or a miner; no contacts)', async () => {
+    const a = await api('/api/voice/call', m1, { method: 'POST', json: { targetType: 'user', targetId: ids.supB } });
+    const b = await api('/api/voice/call', m1, { method: 'POST', json: { targetType: 'user', targetId: m2 } });
+    expect(a.status === 403 && b.status === 403, `${a.status} ${b.status}`);
+  });
+  await step('voice: a real emergency number is never dialled (UNSAFE_DIAL_TARGET)', async () => {
+    const r = await api('/api/voice/call', ids.admin, { method: 'POST', json: { targetType: 'user', targetId: ids.minerB } });
+    expect(r.status === 400 && r.data.error.code === 'UNSAFE_DIAL_TARGET', JSON.stringify(r.data));
+  });
+  await step('voice: someone without a number -> NO_PHONE', async () => {
+    const r = await api('/api/voice/call', ids.admin, { method: 'POST', json: { targetType: 'user', targetId: ids.supB } });
+    expect(r.status === 400 && r.data.error.code === 'NO_PHONE', JSON.stringify(r.data));
+  });
+  await step('voice: a forged Twilio status callback is rejected (BAD_SIGNATURE)', async () => {
+    const res = await fetch(`${BASE}/api/voice/status?callId=${callId}`, { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded', 'x-twilio-signature': 'forged' }, body: 'CallStatus=completed' });
+    expect(res.status === 403, `status ${res.status}`);
+  });
+  await step('voice: hang up a finished dry-run call is harmless', async () => {
+    const r = await api(`/api/voice/call/${callId}/hangup`, m1, { method: 'POST' });
+    const other = await api(`/api/voice/call/${callId}/hangup`, m2, { method: 'POST' });
+    expect(r.status === 200 && r.data.status === 'DRY_RUN' && other.status === 403, `${r.status} ${JSON.stringify(r.data)} ${other.status}`);
+  });
 } finally {
   for (const s of sockets) s.close();
   child.kill();

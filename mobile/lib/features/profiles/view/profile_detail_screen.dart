@@ -20,6 +20,7 @@ import '../../../core/api/api_client.dart';
 import '../../../core/auth/session_bloc.dart';
 import '../../../core/socket/socket_service.dart';
 import '../../../core/time/ist.dart';
+import '../../voice_call/widgets/ai_call_button.dart';
 import '../bloc/profile_detail_bloc.dart';
 import '../data/profile_models.dart';
 import '../data/profiles_repository.dart';
@@ -93,7 +94,7 @@ class _DetailView extends StatelessWidget {
                   child: switch (s.status) {
                     DetailStatus.loading => const SkeletonList(count: 4),
                     DetailStatus.failure => EmptyState(icon: Icons.lock_outline, title: 'Profile not available', message: s.error, actionLabel: 'Retry', onAction: () => context.read<ProfileDetailBloc>().add(const ProfileDetailStarted())),
-                    DetailStatus.ready => PulseOnChange(pulseKey: s.liveTick == 0 ? null : s.liveTick, radius: Radii.sheet, child: _Sections(p: p!, isSelf: isSelf)),
+                    DetailStatus.ready => PulseOnChange(pulseKey: s.liveTick == 0 ? null : s.liveTick, radius: Radii.sheet, child: _Sections(p: p!, isSelf: isSelf, viewerRole: viewerRole)),
                   },
                 ),
               ),
@@ -150,9 +151,10 @@ class _Header extends StatelessWidget {
 }
 
 class _Sections extends StatelessWidget {
-  const _Sections({required this.p, required this.isSelf});
+  const _Sections({required this.p, required this.isSelf, required this.viewerRole});
   final ProfileDetail p;
   final bool isSelf;
+  final Role viewerRole;
 
   @override
   Widget build(BuildContext context) {
@@ -176,6 +178,9 @@ class _Sections extends StatelessWidget {
           if (!p.isCrew) ('Phone', p.phoneE164 ?? p.phoneMasked ?? dash),
         ]),
       ]),
+      // Add-on X5: one tap calls them with the AI voice agent (the server checks scope, number and the emergency blocklist).
+      if (!isSelf && (viewerRole != Role.miner || p.role != Role.miner))
+        _Panel(title: 'Call', icon: Icons.support_agent, children: [AiCallButton(targetType: 'user', targetId: p.id, targetLabel: p.fullName, expand: true)]),
       if (p.presence != null || !p.isCrew)
         _Panel(title: 'Live location', icon: Icons.my_location, children: [
           if (p.presence == null)

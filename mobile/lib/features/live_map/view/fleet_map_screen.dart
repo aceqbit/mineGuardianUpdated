@@ -24,6 +24,7 @@ import '../../../core/socket/socket_service.dart';
 import '../../../core/time/ist.dart';
 import '../../profiles/data/profiles_repository.dart';
 import '../../profiles/widgets/profile_visuals.dart';
+import '../../voice_call/widgets/ai_call_button.dart';
 import '../bloc/fleet_bloc.dart';
 import '../data/live_map_repository.dart';
 import '../widgets/map_launch.dart';
@@ -327,7 +328,10 @@ class _PersonCard extends StatelessWidget {
           if (person.now.sosId != null) const StatusChip(label: 'SOS active', tone: ChipTone.crisis),
         ]),
         const SizedBox(height: Space.md),
-        MgButton(label: 'Open profile', icon: Icons.badge, kind: MgButtonKind.secondary, onPressed: () => context.push(Routes.profile(person.now.userId))),
+        Wrap(spacing: Space.sm, runSpacing: Space.sm, children: [
+          MgButton(label: 'AI call', icon: Icons.support_agent, onPressed: () => showAiCallSheet(context, targetType: 'user', targetId: person.now.userId, targetLabel: person.now.name, reason: person.now.sosId != null ? 'SOS' : null)),
+          MgButton(label: 'Open profile', icon: Icons.badge, kind: MgButtonKind.secondary, onPressed: () => context.push(Routes.profile(person.now.userId))),
+        ]),
       ]),
     );
   }

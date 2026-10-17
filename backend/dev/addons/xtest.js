@@ -39,7 +39,8 @@ export async function fixture() {
   const supB = await mk('supervisor', 'XSUP-B', zb);
   const minersA = [];
   for (let i = 1; i <= 3; i += 1) minersA.push(await mk('miner', `XMIN-A${i}`, za, { phone: { e164: `+9198765001${10 + i}` }, bloodGroup: 'O+', medicalNotes: 'test note' }));
-  const minerB = await mk('miner', 'XMIN-B1', zb);
+  // A deliberately unsafe number: proves the emergency blocklist fires through every dialling route.
+  const minerB = await mk('miner', 'XMIN-B1', zb, { phone: { e164: '+91112' } });
   za.supervisorIds = [supA._id];
   zb.supervisorIds = [supB._id];
   await za.save();
@@ -64,7 +65,7 @@ export async function drop() {
 export function server(port = process.env.PORT || 4100) {
   return spawn(process.execPath, ['src/server.js'], {
     cwd: backend,
-    env: { ...process.env, MONGODB_DB: XTEST_DB, PORT: String(port), NODE_ENV: 'development', DEV_AUTH_BYPASS: 'true', STORAGE_DRIVER: 'local', TWILIO_DRY_RUN: 'true' },
+    env: { ...process.env, MONGODB_DB: XTEST_DB, PORT: String(port), NODE_ENV: 'development', DEV_AUTH_BYPASS: 'true', STORAGE_DRIVER: 'local', TWILIO_DRY_RUN: 'true', VOICE_AGENT_MODE: 'say', ...(process.env.XTEST_LIVE_AI === '1' ? {} : { GEMINI_API_KEY: '' }) },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
 }

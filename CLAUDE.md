@@ -361,7 +361,7 @@ Layout: local metre grid centred on `DEMO_ANCHOR_LAT/LNG`; trunk y=0 (x −300..
 
 ## 17. Security checklist (verify at I.4)
 
-- Every `/api` route requires auth except `/api/health`, `GET /api/zones`, `/public/track/:token`.
+- Every `/api` route requires auth except `/api/health`, `GET /api/zones`, `/public/track/:token`. Add-on X5 adds two machine endpoints without a bearer token: `POST /api/voice/status` (Twilio webhook, `X-Twilio-Signature` verified, else 403) and the `/voice/relay` WebSocket (one-time per-call token).
 - Role guards enforced server-side; zone scoping enforced; dev routes and `DEV_AUTH_BYPASS` off when `NODE_ENV=production`.
 - No secrets in the repo (`.env`, `backend/secrets/`, `contacts.local.json` are git-ignored). Logs never contain tokens/passwords/full phones.
 - No package outside the locked list. Twilio dry run is default.
@@ -435,7 +435,7 @@ Everything in this section is **added on top of** the system above. These rules 
 
 - **Add-only.** No existing file is deleted. No existing route, endpoint, event or enum value is renamed or removed. No existing behaviour changes unless a line below says so. Existing screens get at most an entry point (a button, tile or dock link) into the new feature. All existing tests (backend `npm test`, Flutter `flutter test`) must still pass after every X step, and `flutter analyze` stays at 0 issues.
 - New backend code lives in **new modules** (`backend/src/modules/{profiles,tracking,voice,safety-feed}/`), auto-loaded as usual. New Flutter code lives in **new features** (`mobile/lib/features/{profiles,live_map,voice_call,safety_feed,finish}/`) plus `mobile/lib/core/sensors/`. New routes are registered in a new `mobile/lib/addons/addon_routes.dart`, which `router.dart` includes the same way it includes `phase2_routes.dart`.
-- Add-on modules read other modules' data from **raw collections** (the way Phase 1 reads Phase 2) and never import their internals. Missing data shows `—`, never an invented value.
+- Add-on modules read other modules' data from **raw collections** (the way Phase 1 reads Phase 2) and never import their internals. Missing data shows `—`, never an invented value. One deliberate exception: the voice module imports `assertSafeDialTarget` from `contacts/contacts.logic.js`, because the emergency-number blocklist must have exactly one home.
 - **No placeholder data.** Every number, name, photo, position and rule on screen comes from Mongo, the live socket, a sensor or a cited web source. If a source is not configured, the screen names the missing env value; it does not draw fake content.
 - All earlier safety rules still win: Twilio dry run by default, `TWILIO_CALL_ALLOWLIST`, the emergency-number blocklist (section 13), zone scoping, risk bands never shown to miners, masked logs, validated inputs, audit of every state change.
 - L-sized steps (X2, X4, X5, X6) use plan mode first.
