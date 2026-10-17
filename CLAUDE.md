@@ -679,6 +679,8 @@ It prints a PASS/FAIL line for each check:
 
 The pack also requires `flutter analyze` at 0 issues, `flutter test` and `npm test` green, and `p1-smoke` and `p2-smoke` still all PASS, which proves nothing old broke.
 
+How x-smoke runs (built in X1–X6): it needs only `MONGODB_URI`. It builds a fixture in a throwaway database `mineguardian_xtest` on the same cluster (`dev/addons/xtest.js` refuses any other name), starts its own API on port 4100 with the dev bypass, `TWILIO_DRY_RUN=true` and no Gemini key, talks Socket.IO through `dev/lib/sio-wire.js` (raw WebSocket; `socket.io-client` stays out of the backend), then stops the API and drops the database (`--keep` leaves it). `XTEST_LIVE_AI=1` keeps the Gemini key for a live feed/briefing run. `node dev/addons/xtest.js fixture|server|drop` runs the pieces by hand.
+
 ### 23.9 Manual items for the add-on pack (ask the user; never fake them)
 
 - A real-phone walk to test sensor fusion indoors where GPS is poor, and a two-device check: the phone moves and the admin's Chrome map moves with it.
