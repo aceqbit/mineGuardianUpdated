@@ -10,6 +10,7 @@ import '../../../app/theme/tokens.dart';
 import '../../../app/ui/mg_button.dart';
 import '../../../app/ui/pulse_dot.dart';
 import '../../../app/ui/read_aloud_button.dart';
+import '../../voice_call/widgets/ai_call_button.dart';
 import '../data/emergency_protocol.dart';
 import '../../../contracts/routes.dart';
 import '../../../core/api/api_client.dart';
@@ -177,6 +178,11 @@ class _SosViewState extends State<_SosView> {
     return [
       MgButton(label: 'Call supervisor', icon: Icons.call, expand: true, onPressed: _call),
       const SizedBox(height: Space.md),
+      // Add-on X5: the AI voice agent calls the supervisor at once and tells them who, where and why.
+      for (final sup in widget.user.zoneSupervisors.where((x) => x.id != null)) ...[
+        AiCallButton(targetType: 'user', targetId: sup.id!, targetLabel: sup.name, reason: s.evacOnly ? 'evacuation in progress' : 'SOS', expand: true),
+        const SizedBox(height: Space.md),
+      ],
       MgButton(label: 'Share location by SMS', icon: Icons.sms, expand: true, kind: MgButtonKind.secondary, onPressed: () => _sms(s)),
       const SizedBox(height: Space.md),
       Align(

@@ -20,8 +20,10 @@ import '../features/worker/view/hazard_report_screen.dart';
 import '../features/worker/view/worker_home_screen.dart';
 import 'ui/page_transitions.dart';
 import '../phase2/phase2_routes.dart';
+import '../addons/addon_routes.dart';
 import '../features/dev_gallery/view/ui_gallery_screen.dart';
 import 'global_overlays.dart';
+import '../features/finish/widgets/feature_dock.dart';
 
 /// Makes GoRouter re-run `redirect` whenever the session changes.
 class GoRouterRefreshStream extends ChangeNotifier {
@@ -71,7 +73,8 @@ GoRouter buildRouter(SessionBloc session, {List<RouteBase> extraRoutes = const [
     errorBuilder: (context, state) => const SplashScreen(),
     routes: [
       ShellRoute(
-        builder: (context, state, child) => GlobalOverlays(child: child),
+        // Add-on X7: the feature dock wraps every signed-in role page (pages themselves are not edited).
+        builder: (context, state, child) => GlobalOverlays(child: FeatureDockFrame(location: state.uri.path, child: child)),
         routes: [
           GoRoute(path: Routes.splash, builder: (c, s) => const SplashScreen()),
           GoRoute(path: Routes.login, pageBuilder: (c, s) => fadeThroughPage(key: s.pageKey, child: const LoginScreen())),
@@ -89,6 +92,7 @@ GoRouter buildRouter(SessionBloc session, {List<RouteBase> extraRoutes = const [
           GoRoute(path: Routes.admin, pageBuilder: (c, s) => fadeThroughPage(key: s.pageKey, child: const AdminHomeScreen())),
           if (kDebugMode) GoRoute(path: Routes.devUi, builder: (c, s) => const UiGalleryScreen()),
           ...phase2Routes(),
+          ...addonRoutes(),
           ...extraRoutes,
         ],
       ),

@@ -3,17 +3,20 @@ import 'package:equatable/equatable.dart';
 import '../../contracts/enums.dart';
 
 class ZoneSupervisor extends Equatable {
-  const ZoneSupervisor({required this.name, required this.e164});
+  const ZoneSupervisor({required this.name, required this.e164, this.id});
   final String name;
   final String e164;
 
-  factory ZoneSupervisor.fromJson(Map<String, dynamic> j) =>
-      ZoneSupervisor(name: j['name'] as String? ?? '', e164: j['e164'] as String? ?? '');
+  /// User id (add-on X5: needed for an AI voice call). Null in profiles cached before X5.
+  final String? id;
 
-  Map<String, dynamic> toJson() => {'name': name, 'e164': e164};
+  factory ZoneSupervisor.fromJson(Map<String, dynamic> j) =>
+      ZoneSupervisor(name: j['name'] as String? ?? '', e164: j['e164'] as String? ?? '', id: j['id'] as String?);
+
+  Map<String, dynamic> toJson() => {'name': name, 'e164': e164, 'id': ?id};
 
   @override
-  List<Object?> get props => [name, e164];
+  List<Object?> get props => [name, e164, id];
 }
 
 class SessionUser extends Equatable {

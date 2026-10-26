@@ -5,3 +5,15 @@ GET /api/broadcasts/replies
 PUT /api/zones/:id/evac-exit
 POST /api/auth/otp/send
 POST /api/auth/otp/verify
+GET /api/profiles
+GET /api/profiles/:userId
+PATCH /api/profiles/:userId
+GET /api/tracking/live
+GET /api/tracking/surface-route
+GET /api/tracking/hazards
+POST /api/voice/call
+POST /api/voice/call/:callId/hangup
+POST /api/voice/status
+GET /api/safety-feed/today
+GET /api/safety-feed
+POST /api/safety-feed/refresh

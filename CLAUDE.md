@@ -38,7 +38,7 @@ Built in 33 ordered steps (S0.1–S0.4, P1.1–P1.12, P2.0–P2.13, I.1–I.4). 
 
 **Forbidden:** Provider, Riverpod, GetX, Redux, MobX; `setState`-driven business logic; Firestore, Postgres, Supabase; Python at runtime; NestJS, Fastify; any UI kit replacing Material 3; any package not already in `pubspec.yaml` / `package.json` unless the step explicitly allows it. `socket.io-client` must NOT be added to the backend (P2.13).
 
-Packages are installed **once in Step 0**; manifests are never edited again.
+Packages are installed **once in Step 0**; manifests are never edited again. **One exception:** step X0 of the add-on pack (section 23.1) adds exactly the packages listed there, once, in one commit. Nothing else is ever added.
 
 - Flutter: flutter_bloc, rxdart, equatable, go_router, dio, socket_io_client, firebase_core, firebase_auth, firebase_messaging, sqflite, path, path_provider, connectivity_plus, geolocator, camera, image_picker, image, exif, crypto, uuid, intl, google_mlkit_pose_detection, phone_numbers_parser, cached_network_image, flutter_animate, animations, google_fonts, shimmer, flutter_map, latlong2, url_launcher, permission_handler, fl_chart, audioplayers
 - Node: express, mongoose, firebase-admin, socket.io, node-cron, multer, sharp, exifr, zod, dotenv, cors, helmet, express-rate-limit, pino, pino-pretty, libphonenumber-js, @google/genai, twilio, pdfkit, uuid, onnxruntime-node (optional), nodemon (dev)
@@ -361,7 +361,7 @@ Layout: local metre grid centred on `DEMO_ANCHOR_LAT/LNG`; trunk y=0 (x −300..
 
 ## 17. Security checklist (verify at I.4)
 
-- Every `/api` route requires auth except `/api/health`, `GET /api/zones`, `/public/track/:token`.
+- Every `/api` route requires auth except `/api/health`, `GET /api/zones`, `/public/track/:token`. Add-on X5 adds two machine endpoints without a bearer token: `POST /api/voice/status` (Twilio webhook, `X-Twilio-Signature` verified, else 403) and the `/voice/relay` WebSocket (one-time per-call token).
 - Role guards enforced server-side; zone scoping enforced; dev routes and `DEV_AUTH_BYPASS` off when `NODE_ENV=production`.
 - No secrets in the repo (`.env`, `backend/secrets/`, `contacts.local.json` are git-ignored). Logs never contain tokens/passwords/full phones.
 - No package outside the locked list. Twilio dry run is default.
@@ -374,6 +374,7 @@ Layout: local metre grid centred on `DEMO_ANCHOR_LAT/LNG`; trunk y=0 (x −300..
 | Phase 1 | P1.1 auth/zones API → P1.2 login → P1.3 sign-up → P1.4 worker home → P1.5 capture + gate → P1.6 check-in API + ticker → P1.7 outbox/sync → P1.8 hazard → P1.9 SOS + evac map → P1.10 supervisor feed → P1.11 admin home → P1.12 simulators + `p1-smoke` |
 | Phase 2 | P2.0 (manual: 30 eval photos + `labels.json`) → P2.1 analyser core → P2.2 tools/fusion/eval → P2.3 wiring → P2.4 review card → P2.5 scoring → P2.6 rewards → P2.7 admin normal → P2.8 crisis engine → P2.9 rerouter → P2.10 crisis console → P2.11 broadcast → P2.12 contacts → P2.13 `p2-smoke` + adversarial |
 | Integration | I.1 contract check → (I.2 fix prompt only if rehearsal fails) → I.3 demo runbook → I.4 final audit |
+| Add-on pack (section 23) | X0 contract + packages → X1 profiles API → X2 profile managers (3 roles) → X3 live tracking + sensor fusion → X4 live map + 4 route modes + admin live map → X5 AI voice agent calls → X6 daily safety feed + videos → X7 finish pass (feature dock, role contrast, glass) → X8 `x-smoke` |
 
 If behind schedule cut in this order: P2.6 visuals → P2.7 PDF (keep JSON report) → P2.11 reply inbox → P1.12 extras. **Never cut:** capture + quality gate + ticker, AI analyser, review card, SOS + panic screen, crisis activation + routes, emergency contacts.
 
@@ -425,3 +426,265 @@ Platform: Android `minSdk 24`, permissions INTERNET, CAMERA, ACCESS_FINE/COARSE_
 **Resume:** "We were mid-way through step <ID> and the session was reset. Run `git status` and `git diff --stat`, compare against the step's file list, tell me which files are complete and which are missing, then finish ONLY what is missing and run the verify checks. Do not rewrite files that are already complete."
 
 **Gap-check (after L steps):** "Review what you just built for step <ID> against the step text and docs/CONTRACT.md. List every requirement that is missing, partly done, or differs from the contract (file + line). Fix the gaps, don't add anything new, then re-run the checks."
+
+---
+
+## 23. Add-on pack X (X0–X8): profiles, live tracking + map, AI voice calls, daily safety feed, finish pass
+
+Everything in this section is **added on top of** the system above. These rules apply to every X step:
+
+- **Add-only.** No existing file is deleted. No existing route, endpoint, event or enum value is renamed or removed. No existing behaviour changes unless a line below says so. Existing screens get at most an entry point (a button, tile or dock link) into the new feature. All existing tests (backend `npm test`, Flutter `flutter test`) must still pass after every X step, and `flutter analyze` stays at 0 issues.
+- New backend code lives in **new modules** (`backend/src/modules/{profiles,tracking,voice,safety-feed}/`), auto-loaded as usual. New Flutter code lives in **new features** (`mobile/lib/features/{profiles,live_map,voice_call,safety_feed,finish}/`) plus `mobile/lib/core/sensors/`. New routes are registered in a new `mobile/lib/addons/addon_routes.dart`, which `router.dart` includes the same way it includes `phase2_routes.dart`.
+- Add-on modules read other modules' data from **raw collections** (the way Phase 1 reads Phase 2) and never import their internals. Missing data shows `—`, never an invented value. One deliberate exception: the voice module imports `assertSafeDialTarget` from `contacts/contacts.logic.js`, because the emergency-number blocklist must have exactly one home.
+- **No placeholder data.** Every number, name, photo, position and rule on screen comes from Mongo, the live socket, a sensor or a cited web source. If a source is not configured, the screen names the missing env value; it does not draw fake content.
+- All earlier safety rules still win: Twilio dry run by default, `TWILIO_CALL_ALLOWLIST`, the emergency-number blocklist (section 13), zone scoping, risk bands never shown to miners, masked logs, validated inputs, audit of every state change.
+- L-sized steps (X2, X4, X5, X6) use plan mode first.
+
+### 23.1 X0: contract + package additions (one `CONTRACT:` commit)
+
+Update `docs/CONTRACT.md`, `backend/src/contracts/*` and `mobile/lib/contracts/*` together with exactly these **additive** names:
+
+| Kind | Additions |
+|---|---|
+| Enums | `ROUTE_MODE`: LEAST_HINDRANCE, MOST_LIGHT, MOST_AID, DIRECT · `AID_TYPE`: FIRST_AID, TOOL_STATION, PHONE, SCSR_CACHE, FIRE_EXTINGUISHER · `POSITION_SOURCE`: GPS, FUSED, PDR · `SAFETY_ITEM_KIND`: RULE, REACT, PREVENT, LESSON · `VOICE_CALL_STATUS`: QUEUED, RINGING, IN_PROGRESS, COMPLETED, FAILED, DRY_RUN · `PRESENCE`: LIVE, STALE, OFFLINE |
+| Server→client events | `profile:updated {userId, changed[]}` · `tracking:positions {positions[]}` (throttled 1 s) · `safety:feed {date, version}` · `voice:call_status {callId, status, targetLabel}` |
+| Client→server | `gps:update` gets **optional** `headingDeg`, `speedMps`, `source` (POSITION_SOURCE) and `tunnelId`; old clients keep working |
+| Bus events | `ProfileChanged{userId, changed[]}` · `SafetyFeedUpdated{date, version}` |
+| REST | listed in 23.2–23.6 |
+| Collections | `safety_feed`, `voice_calls`, `live_positions` (one document per user, latest position only) |
+| Layout | new `properties.kind: aid` (Point: `id`, `aidType`, `name`) and an optional tunnel prop `lightLux` (number, 0–400; missing = unknown, treated as 0) |
+| Flutter routes | `/worker/profiles` `/supervisor/profiles` `/admin/profiles` `/profiles/:userId` · `/worker/map` `/supervisor/live-map` `/admin/live-map` · `/worker/safety` |
+
+X0 adds these packages, once. It is the only manifest edit allowed.
+
+- Flutter: `sensors_plus` (accelerometer, gyroscope, magnetometer) and `video_player` (safety clips). `flutter_tts` is already present.
+- Node: `ws` (WebSocket endpoint for Twilio ConversationRelay, because socket.io cannot speak plain WebSocket to Twilio).
+
+New env vars, all optional (`backend/.env.example`, parsed in `env.js`): `TRACKING_ENABLED=true`, `TRACKING_STALE_SEC=30`, `TRACKING_OFFLINE_SEC=120`, `ORS_API_KEY` (OpenRouteService, surface legs only), `VOICE_AGENT_MODE=say|relay` (default `say`), `VOICE_AGENT_MAX_SEC=180`, `SAFETY_FEED_ENABLED=true`, `SAFETY_FEED_CRON=0 5,11,17 * * *` (Asia/Kolkata), `SAFETY_VIDEO_MODE=storyboard|veo|off` (default `storyboard`), `VEO_MODEL` (unverified: check Google's model list and change only the env value), `SAFETY_SOURCE_ALLOWLIST` (comma-separated domains; default `dgms.gov.in,ilo.org,osha.gov,msha.gov,hse.gov.uk`).
+
+### 23.2 X1 + X2: a profile manager inside each role
+
+**Who sees whom (enforced on the server):**
+
+| Viewer | List shows | Detail shows |
+|---|---|---|
+| Miner (`/worker/profiles`) | Their own full profile pinned on top, then a **crew directory**: every active miner and the supervisor(s) of their zone (8 miners in Z-B means 8 cards plus the supervisor) | For other miners: name, employee ID, photo, shift, zone, streak, XP, badges, rank. **Never** another miner's risk band, score breakdown, violations, email or phone |
+| Supervisor (`/supervisor/profiles`) | Every miner of **their own zone** only, plus themselves | Full profile (below), including risk band |
+| Admin (`/admin/profiles`) | Everyone, in tabs Miners / Supervisors / Admins; filter by zone, status, risk band, shift; search by name or employee ID | Full profile, plus edit |
+
+**A full profile contains real data only:**
+- Identity: name, employee ID, role, zone, shift, status, joined date, email (masked for non-admins), `phone.e164` (masked).
+- Latest check-in photo through `NetPhoto` (initials avatar if there is none).
+- Today's check-in status and verdict, and a 30-day compliance calendar (verdict per day).
+- Score, rank, streak, XP, badges and risk band (from `score_snapshots` and `rewards`).
+- PPE required by the zone.
+- Hazards reported (count by status plus the last 5) and SOS history.
+- For supervisors: reviews decided and SLA reliability.
+- Accounted status while a crisis is ACTIVE, and live presence plus last position (from 23.3).
+- Optional admin-editable fields on `User` (the existing top-level `designation`, `bloodGroup`, `experienceYears`, `dateOfJoining`, plus the new `certifications[{name, issuedAt, expiresAt}]` and `medicalNotes`). Empty fields render `—`. A certification that expires within 30 days shows a warning chip.
+
+**API (`modules/profiles`):**
+- `GET /api/profiles?role&zoneId&q&limit&cursor`
+- `GET /api/profiles/:userId`: the shape is trimmed by the viewer's role; outside the viewer's scope it returns 403 `FORBIDDEN_SCOPE`.
+- `PATCH /api/profiles/:userId` (strict zod body): an admin may edit those fields, status, shift, a miner's zone (supervisors move via `PUT /api/zones/:id/supervisors`, else 400 `USE_ZONE_SUPERVISORS`) and `phoneE164` (validated E.164); a user editing themselves may change `designation` only (else 403 `FORBIDDEN_FIELD`). Audited as `PROFILE_UPDATED` with field names only, never values.
+- The aggregation reads raw collections with one query per section under `Promise.all`; p95 ≤ 300 ms for a zone of 20.
+
+**Live updates (no refresh button needed):**
+- The profiles module subscribes to `CheckInCreated`, `ComplianceReviewed`, `HazardCreated`, `HazardStatusChanged`, `SosTriggered`, `SosCancelled`, `CrisisActivated`, `CrisisResolved` and its own PATCH.
+- On each one it publishes `ProfileChanged` and emits `profile:updated {userId, changed[]}` to `user:<id>`, `zone:<zone>:supervisors` and `role:admin`. Changes to crew-visible fields also go to `zone:<zone>`.
+- The client also consumes `score:updated`.
+- `ProfilesBloc` updates only the changed card (refetching `GET /api/profiles/:userId`) and coalesces bursts with a 250 ms debounce. Presence dots follow `tracking:positions`.
+
+**UI (premium, but still only the shared kit and tokens):**
+- Hero header with a role-tinted gradient that drifts slowly (8 s).
+- Glass cards: `BackdropFilter` blur σ 12, surface at 72% opacity, 1 px hairline border, a sheen gradient from the top-left.
+- Avatar with an animated status ring in the compliance colour.
+- Staggered grid entrance (40 ms, ≤ 10 items) and an `OpenContainer` (animations package) transform from card to detail.
+- Animated counters for score and XP (tabular figures), a shimmer skeleton while loading, and a pulse on a card when `profile:updated` arrives.
+- `fl_chart` 30-day compliance strip and score sparkline.
+- Detail page: a sliver app bar that collapses the photo, with sections as glass panels.
+- All animation is off under `MediaQuery.disableAnimations`. Every page is overflow-free at 360/768/1280 in light and dark. `contrast_test.dart` is extended to cover the new tints.
+
+**Tests:**
+- Scope matrix: a miner cannot see another miner's risk band or phone; a Z-A supervisor gets 403 on a Z-B user.
+- PATCH validation.
+- After a check-in, `profile:updated` is emitted to the right rooms.
+- Flutter bloc test: one event updates exactly one card.
+- Layout tests at 3 widths.
+
+### 23.3 X3: live GPS tracking with sensor fusion (replaces static positions)
+
+**On the phone (`core/sensors/`, `core/location/live_tracker.dart`):**
+- GPS: a `geolocator` position **stream** (`distanceFilter` 2 m, high accuracy). On Android, while the miner is on shift, a foreground-service notification reads "Mine Guardian is sharing your location for safety".
+- Sensors (`sensors_plus`) drive pedestrian dead reckoning (PDR):
+  - Step detection on the low-pass accelerometer magnitude (peak > 1.2 g, ≥ 300 ms between steps).
+  - Step length 0.7 m, or the Weinberg estimate once calibrated.
+  - Heading from a complementary filter: 0.98 × gyro-integrated heading + 0.02 × tilt-compensated magnetometer heading.
+- Fusion: a 2-D Kalman filter in local metres around `DEMO_ANCHOR`.
+  - GPS fixes are measurements, weighted by `accuracyM`; PDR steps are the motion model.
+  - GPS accuracy ≤ 30 m gives `source` GPS or FUSED. Accuracy > 30 m, or no fix for 10 s (as happens underground), gives `PDR`.
+  - Map-matching: snap to the nearest tunnel LineString of the cached layout within 15 m, and report its `tunnelId`.
+- Sending: `gps:update` every 2 s while moving (> 1 m) and every 10 s while still. Offline, updates go to the outbox as `gps` (20 newest), as today.
+- Tracking runs **only** while the miner is signed in during their shift window, or during an SOS or crisis. A "Live" pill is always visible, and outside a crisis the miner has an off switch.
+
+**On the server (`modules/tracking`):**
+- Consume `GpsUpdated` (the socket core already publishes it), upsert `live_positions` (latest only) and keep an in-memory map.
+- Emit `tracking:positions` to `role:admin` (all miners) and `zone:<z>:supervisors` (own zone only), throttled to 1 s. Each entry is `{userId, name, employeeId, zoneId, lat, lng, accuracyM, headingDeg, speedMps, source, tunnelId, presence, ts}`.
+- Presence: LIVE for under `TRACKING_STALE_SEC`, STALE until `TRACKING_OFFLINE_SEC`, then OFFLINE.
+- `GET /api/tracking/live?zoneId` (supervisor scoped, or admin) returns the snapshot when a page opens.
+- The crisis engine keeps its own `crisis:positions`; nothing there changes.
+
+**Tests:**
+- Step detector on recorded sample arrays (Dart constants).
+- The Kalman filter converges to GPS when GPS is accurate and follows PDR when it is not.
+- Map-matching snaps within 15 m.
+- Server throttle: ≤ 1 emit per second.
+- Scope: a Z-A supervisor never receives Z-B positions.
+- Presence transitions.
+
+### 23.4 X4: live map with a destination, 4 shortest-path modes and an admin live view
+
+**Opening:** tapping the map tile or card on any home opens the live map through an animated launch. A `CustomPainter` mark (compass ring, radar sweep and tunnel glyph in amber on ink900) sweeps for 700 ms, then a `Hero` expands it into the map. With animations disabled it opens instantly.
+
+**The map (never a dummy):**
+- `flutter_map` with Google Map Tiles (the existing `core/maps/google_tiles.dart`) under the **real** layout overlay: tunnels coloured by airway and status, junctions, exits, refuges, aid points with `AID_TYPE` icons, and live hazards.
+- With no `GOOGLE_MAPS_API_KEY`, the map shows the real layout on a plain background with a banner naming the missing key. It never shows invented geometry.
+- The self marker animates between fixes (1 s tween) and shows a heading cone, an accuracy circle and a source chip (GPS / FUSED / PDR).
+
+**Set a destination:** tap any exit, refuge, aid point or junction; long-press any point (snapped to the nearest junction); or search by name. The start is the live fused position, or a pinned point as today.
+
+**Route modes.** These are computed on the device over the layout graph, reusing `EvacGraph`; the backend rerouter does not change.
+
+| Mode | Edge cost | Shown as |
+|---|---|---|
+| LEAST_HINDRANCE (least hindrance and short) | Tobler time × hazard proximity × congestion (live counts from `tracking:positions`) × narrow-tunnel factor (< 2 m: ×1.2) × slope penalty | green, "fewest obstacles" |
+| MOST_LIGHT | `length × (1 + 1.5 × (1 − min(lightLux, 200) / 200))` | amber, "% of route lit" |
+| MOST_AID (most tools and help) | `length × max(0.4, 1 − 0.15 × aid points within 20 m of the edge)` | teal, "aid points passed: N" |
+| DIRECT | pure length in metres | ink, "shortest distance" |
+
+- Hard rules for **every** mode: blocked tunnels and edges within 15 m of an ACTIVE CRITICAL hazard are removed, as in section 13.
+- If two modes produce the same path, draw it once and give it both labels.
+- Each route card shows distance, ETA (at 1.1 m/s, or at the live `speedMps` while moving), % lit, aid count, hazards passed and the chosen exit.
+- A turn-by-turn strip uses junction names. The route recomputes automatically when the fused position leaves it by more than 15 m or when a hazard or blocked edge appears.
+- The surface leg (exit to assembly point or hospital) needs real surface points, which the layout does not carry yet. The backend proxy `GET /api/tracking/surface-route` (OpenRouteService, only when `ORS_API_KEY` is set; the key never reaches the client) is ready, and the app draws a surface leg only once the layout has assembly points. Public road routers have no tunnel data, so they are never used underground.
+
+**Hazards on the phone:** miners cannot read `GET /api/hazards` (staff only), so the map reads `GET /api/tracking/hazards` (any signed-in role; position, category and AI severity only, no photo or reporter) every 30 s while open, cached for offline.
+
+**Seed data needed for real routes:**
+- `build_layout.js` adds `lightLux` to every tunnel: trunk 150, cross-cuts 60, returns 20, and two dark spans at 0.
+- It adds aid points: first aid at J2 and J8, tool stations at N2 and S4, a phone at every exit, SCSR caches at J5, N3 and S1, and an extinguisher every 120 m along the trunk.
+- Layout validation also checks that every aid point is within 10 m of its junction. The seeded layout is version 2 (`LAYOUT_VERSION`), so phones (ETag) and the rerouter reload it. The live map never uses the built-in sample layout: without a real layout it says so.
+
+**Admin and supervisor live view (`/admin/live-map`, `/supervisor/live-map`):**
+- Every tracked miner moves on the map in real time: the snapshot first, then `tracking:positions`.
+- Each marker tweens over 1 s and shows a 60 s fading trail and a heading arrow. Colour shows presence (LIVE / STALE / OFFLINE); miners with an SOS pulse red.
+- A zone filter, and a side list sorted by presence.
+- Tapping a miner opens a mini profile (linked to 23.2) with a "Call" button (23.5).
+- Routes stay on the phone; the admin sees position and trail only.
+- A miner moving with the phone appears on the admin map within ≤ 2 s on the same LAN.
+
+**Tests:**
+- Each mode's cost on a hand-built graph: MOST_LIGHT avoids the dark span, MOST_AID passes at least 1 more aid point, DIRECT is the minimum-length path, and every mode avoids a CRITICAL hazard edge.
+- Identical paths are deduplicated.
+- The recompute trigger fires.
+- The admin map bloc applies 3 position batches in order.
+
+### 23.5 X5: AI voice agent call on tap
+
+Tapping a phone number **immediately** calls `POST /api/voice/call {targetType: user|contact, targetId, reason?}`. This applies to the contacts list, "Call supervisor" in SOS, the phone row in a profile, and "Call" on the live map. There is no confirm dialog. A status chip appears at once with a **Hang up** button. The plain `tel:` link stays available as a secondary action.
+
+**Server (`modules/voice`):**
+1. Resolve the number (the user's `phone.e164` or the contact's `dialE164`) and apply **all** existing guards: valid E.164, the blocklist (400 `UNSAFE_DIAL_TARGET`), dry run, and `TWILIO_CALL_ALLOWLIST`.
+   - Scope: a miner may call their own zone's supervisors and the admins; a supervisor may call their own zone's users, the admins and the contacts; an admin may call anyone.
+   - Rate limit: 1 call per caller and target every 30 s (429 `CALL_COOLDOWN`).
+2. Build a **context packet** from real data: the caller's name, role and zone; live position and the nearest junction or tunnel; any active SOS or crisis; open hazards in the zone; the assigned route, if any.
+3. `VOICE_AGENT_MODE=relay`: place a Twilio call with `<Connect><ConversationRelay url="wss://<PUBLIC_BASE_URL host>/voice/relay?callId=…" language="en-IN" welcomeGreeting="…"/></Connect>`.
+   - The `ws` endpoint receives `setup`, `prompt` and `interrupt` messages, and answers with `text` tokens streamed from Gemini Flash.
+   - The locked system prompt lives in `voice/agent.prompt.js`. The agent says who is calling and why in its first sentence. It answers questions only from the context packet and the first-aid guides, never invents facts, never gives a diagnosis, offers to repeat, and ends the call after `VOICE_AGENT_MAX_SEC`.
+   - This mode needs a public **https** `PUBLIC_BASE_URL` (cloudflared or ngrok). Without one, fall back to `say` and log why.
+   - Check the ConversationRelay attribute names against Twilio's current docs before coding.
+4. `VOICE_AGENT_MODE=say` (the default; works without a tunnel): Gemini writes a briefing of ≤ 450 chars from the context packet, spoken twice with `<Say language="en-IN">` as today. If Gemini fails, a fixed template is used instead.
+5. Status callback `POST /api/voice/status`: validate `X-Twilio-Signature` with `twilio.validateRequest`, store the status in `voice_calls` and emit `voice:call_status` to the caller. Audited as `VOICE_CALL_PLACED`. In dry run the status is `DRY_RUN` and the UI says "Dry run — no real call placed".
+6. `POST /api/voice/call/:callId/hangup` ends the call (Twilio `status: completed`).
+
+**Tests:**
+- The blocklist and allowlist are still enforced through the new route.
+- Scope matrix and cooldown.
+- TwiML for both modes.
+- The signature check rejects a forged callback.
+- With Gemini mocked, the relay handler streams a reply to a sample prompt.
+- Transcript text is never logged in full.
+
+### 23.6 X6: daily safety feed for miners (live web sources + AI)
+
+**Server (`modules/safety-feed`):**
+- Runs on cron `SAFETY_FEED_CRON` (Asia/Kolkata), and on boot if today's feed is missing.
+- Uses Gemini Flash with **Google Search grounding** (`tools: [{ googleSearch: {} }]`). The prompt gives today's date, each zone's required PPE, the open hazard categories and the last 7 days' NON_COMPLIANT keys.
+- It asks for today's items in four kinds:
+  - RULE: the rule of the day.
+  - PREVENT: how to prevent accidents.
+  - REACT: how to react when an accident happens (gas, roof fall, fire/smoke, flooding, electrical, injured person).
+  - LESSON: a recent mining incident and its lesson.
+- Each item follows a strict schema: `{kind, title ≤ 80, body ≤ 400, steps[≤ 6], hazardCategory?, sourceUrls[≥ 1]}`.
+- **Source guard:**
+  - Keep an item only if every entry in `sourceUrls` appears in the response's grounding metadata and its domain is in `SAFETY_SOURCE_ALLOWLIST` (LESSON items may also cite a news domain). Otherwise drop the item.
+  - No regulation number unless it appears verbatim in a cited source.
+  - Every item shows "AI summary from <domain> — confirm with your supervisor".
+- Storage and delivery:
+  - Store in `safety_feed` as `{date, version, items[], videos[]}`, publish `SafetyFeedUpdated`, and emit `safety:feed` to `role:miner` (and to supervisors and admins for preview).
+  - `GET /api/safety-feed/today` · `GET /api/safety-feed?date=` · admin `POST /api/safety-feed/refresh`.
+- Without `GEMINI_API_KEY` the endpoints return 503 `FEED_NOT_CONFIGURED` and the bar says so. Canned rules are never shown as "today's".
+
+**Videos (`SAFETY_VIDEO_MODE`):**
+- `storyboard` (the default, free): each REACT and PREVENT item becomes an AI-scripted animated explainer rendered in Flutter: step cards, icons drawn with `TileArt` / `CustomPainter`, a `flutter_animate` sequence, and on-device narration with `flutter_tts`. Labelled "AI-generated explainer".
+- `veo`: one clip of ≤ 8 s per day for the top REACT item, made with `@google/genai` video generation (`VEO_MODEL`). Stored at `safety/<date>/<id>.mp4`, served by 15-minute signed URL, played with `video_player`, labelled "AI-generated video". This is paid, so it is off unless chosen.
+- `off`: no videos.
+- Hand-picked third-party video URLs are never invented. If the user wants curated clips, they supply the URLs.
+
+**Miner UI:**
+- After login, the worker home gets a **bottom safety bar** above the nav: an auto-scrolling ticker of today's titles with kind chips (RULE amber, PREVENT success, REACT danger, LESSON info).
+- Tapping it opens `/worker/safety` with tabs Today / React / Prevent / Videos. The React tab is grouped by emergency type with large step cards.
+- It updates live on `safety:feed`. It is cached in `cache_kv('safety_feed')` so it works offline, and shows the date it was fetched.
+
+**Tests:**
+- The source guard drops an item with an ungrounded URL and one with a domain outside the allowlist.
+- Schema validation.
+- The cron is idempotent per date and version.
+- 503 without a key.
+- The Flutter ticker renders from the cache while offline.
+
+### 23.7 X7: finish pass on every page
+
+- **Feature dock:** a high-contrast band at the end of every role page: ink900 background in light mode, ink800 in dark, with a top border in the role accent.
+  - It holds the role's add-on shortcuts: Profiles, Live map, Safety today (miners only) and Voice call.
+  - It also shows live status chips: socket online/offline, outbox pending count, tracking source (GPS / FUSED / PDR) and crisis state.
+  - Below 600 px it collapses to a row of icons.
+- **Role accents** (new tokens, AA-checked in `contrast_test.dart`):
+  - Miner: amber (existing).
+  - Supervisor: the `info` teal `#0E7490`.
+  - Admin: indigo `roleAdmin #4338CA` as a fill; text on light backgrounds uses `#3730A3`.
+  - Accents tint headers, the dock border and the active nav item only. Red stays reserved for emergencies.
+- **Glass and motion kit** (`app/ui/glass_card.dart`, `page_hero.dart`, `animated_counter.dart`, `pulse_on_change.dart`): shared by all add-ons, tokens only, no magic numbers, all motion off under `disableAnimations`.
+- Existing pages get the dock and hero by **wrapping** only; their content is not rewritten. Every page is overflow-free at 360/768/1280 in light and dark.
+
+### 23.8 X8: `node dev/addons/x-smoke.js` (gate for the pack)
+
+It prints a PASS/FAIL line for each check:
+- Profiles: the list per role, and the scope 403s.
+- A simulated check-in: the supervisor's socket receives `profile:updated`.
+- Tracking: 5 `gps:update` messages from a simulated miner reach the admin socket as `tracking:positions` with moving coordinates and the correct presence; a Z-A supervisor receives none for Z-B.
+- Voice: a call in dry run gives `voice:call_status DRY_RUN`; a blocked number gives `UNSAFE_DIAL_TARGET`.
+- Safety feed: today's feed returns grounded items, or 503 when unconfigured (reported as MANUAL).
+- Route modes: all four return a path (covered by the `evac_graph` unit tests).
+
+The pack also requires `flutter analyze` at 0 issues, `flutter test` and `npm test` green, and `p1-smoke` and `p2-smoke` still all PASS, which proves nothing old broke.
+
+How x-smoke runs (built in X1–X6): it needs only `MONGODB_URI`. It builds a fixture in a throwaway database `mineguardian_xtest` on the same cluster (`dev/addons/xtest.js` refuses any other name), starts its own API on port 4100 with the dev bypass, `TWILIO_DRY_RUN=true` and no Gemini key, talks Socket.IO through `dev/lib/sio-wire.js` (raw WebSocket; `socket.io-client` stays out of the backend), then stops the API and drops the database (`--keep` leaves it). `XTEST_LIVE_AI=1` keeps the Gemini key for a live feed/briefing run. `node dev/addons/xtest.js fixture|server|drop` runs the pieces by hand.
+
+### 23.9 Manual items for the add-on pack (ask the user; never fake them)
+
+- A real-phone walk to test sensor fusion indoors where GPS is poor, and a two-device check: the phone moves and the admin's Chrome map moves with it.
+- `GOOGLE_MAPS_API_KEY` (Map Tiles API on a billing-enabled project); optionally `ORS_API_KEY`.
+- For the live AI voice agent: a public https tunnel in `PUBLIC_BASE_URL`, `VOICE_AGENT_MODE=relay`, Twilio ConversationRelay enabled on the account, verified numbers in `TWILIO_CALL_ALLOWLIST`, and `TWILIO_DRY_RUN=false` only after a dry run.
+- `GEMINI_API_KEY` with Google Search grounding. `SAFETY_VIDEO_MODE=veo` only if the user accepts the cost and confirms the current Veo model id.
+- Consent text for miners about sharing their location during shifts, shown once at the first login after X3.

@@ -43,6 +43,18 @@ const schema = z
   TWILIO_CALL_ALLOWLIST: optStr,
   SLA_MINUTES: z.coerce.number().default(30),
   SLA_REMINDER_BASE_MINUTES: z.coerce.number().default(5),
+  // Add-on pack X (CLAUDE.md section 23.1), all optional.
+  TRACKING_ENABLED: bool(true),
+  TRACKING_STALE_SEC: z.coerce.number().int().positive().default(30),
+  TRACKING_OFFLINE_SEC: z.coerce.number().int().positive().default(120),
+  ORS_API_KEY: optStr,
+  VOICE_AGENT_MODE: z.enum(['say', 'relay']).default('say'),
+  VOICE_AGENT_MAX_SEC: z.coerce.number().int().positive().default(180),
+  SAFETY_FEED_ENABLED: bool(true),
+  SAFETY_FEED_CRON: z.string().default('0 5,11,17 * * *'),
+  SAFETY_VIDEO_MODE: z.enum(['storyboard', 'veo', 'off']).default('storyboard'),
+  VEO_MODEL: optStr,
+  SAFETY_SOURCE_ALLOWLIST: z.string().default('dgms.gov.in,ilo.org,osha.gov,msha.gov,hse.gov.uk'),
 })
   .superRefine((v, ctx) => {
     if (v.STORAGE_DRIVER === 'firebase' && !v.FIREBASE_STORAGE_BUCKET) ctx.addIssue({ code: 'custom', path: ['FIREBASE_STORAGE_BUCKET'], message: 'required (or set STORAGE_DRIVER=local)' });

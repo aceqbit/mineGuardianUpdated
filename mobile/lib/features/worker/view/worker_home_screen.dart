@@ -11,6 +11,8 @@ import '../../../app/ui/media_tile.dart';
 import '../../../app/ui/section_header.dart';
 import '../../../app/ui/sync_indicator.dart';
 import '../../../core/sync/sync_engine.dart';
+import '../../live_map/widgets/live_tracking_pill.dart';
+import '../../safety_feed/widgets/safety_bar.dart';
 import '../../../contracts/routes.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/auth/session_bloc.dart';
@@ -111,9 +113,10 @@ class _WorkerHomeViewState extends State<_WorkerHomeView> with WidgetsBindingObs
         NavDest(label: 'Leaderboard', icon: Icons.leaderboard),
         NavDest(label: 'Rewards', icon: Icons.emoji_events),
       ],
-      actions: [SyncIndicator(engine: context.read<SyncEngine>()), if (!compact) Padding(padding: const EdgeInsets.only(right: Space.md, left: Space.md), child: sos)],
+      actions: [const LiveTrackingPill(), SyncIndicator(engine: context.read<SyncEngine>()), if (!compact) Padding(padding: const EdgeInsets.only(right: Space.md, left: Space.md), child: sos)],
       floatingActionButton: compact ? sos : null,
-      body: BlocBuilder<WorkerHomeBloc, WorkerHomeState>(builder: (context, s) {
+      // Add-on X6: the daily safety bar sits under the page, above the navigation.
+      body: Column(children: [Expanded(child: BlocBuilder<WorkerHomeBloc, WorkerHomeState>(builder: (context, s) {
         if (s.status == WorkerHomeStatus.failure) {
           return EmptyState(icon: Icons.cloud_off, title: 'Could not load', message: 'Pull down to try again', actionLabel: 'Retry', onAction: () => context.read<WorkerHomeBloc>().add(const WorkerHomeStarted()));
         }
@@ -135,6 +138,8 @@ class _WorkerHomeViewState extends State<_WorkerHomeView> with WidgetsBindingObs
                     MediaTile(imageUrl: AppImages.hazard, icon: Icons.warning_amber, title: 'Report Hazard', subtitle: 'Photo, category, location', onTap: () => context.go(Routes.workerHazard)),
                     MediaTile(imageUrl: AppImages.leaderboard, icon: Icons.leaderboard, title: 'Leaderboard', subtitle: 'Live safety ranking', onTap: () => context.go(Routes.leaderboard)),
                     MediaTile(imageUrl: AppImages.rewards, icon: Icons.emoji_events, title: 'Rewards', subtitle: 'Honours and badges', onTap: () => context.go(Routes.rewards)),
+                    MediaTile(imageUrl: AppImages.adminZones, icon: Icons.map, title: 'Live map', subtitle: 'Destinations and 4 route types', onTap: () => context.go(Routes.workerMap)),
+                    MediaTile(imageUrl: AppImages.supervisorFeed, icon: Icons.badge, title: 'My crew', subtitle: 'Your profile and your crew', onTap: () => context.go(Routes.workerProfiles)),
                     MediaTile(imageUrl: AppImages.adminCrisis, icon: Icons.alt_route, title: 'Exit navigation', subtitle: 'Live map to the nearest exit', onTap: () => context.go(Routes.workerSosEvac)),
                   ]),
                   const SizedBox(height: Space.x2),
@@ -145,7 +150,7 @@ class _WorkerHomeViewState extends State<_WorkerHomeView> with WidgetsBindingObs
             ],
           ),
         );
-      }),
+      })), const SafetyBar()]),
     );
   }
 }

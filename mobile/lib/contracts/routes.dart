@@ -23,6 +23,20 @@ class Routes {
   static const crisisView = '/crisis/view';
   static const devUi = '/dev/ui';
 
+  // add-on pack X (lib/addons/addon_routes.dart)
+  static const workerProfiles = '/worker/profiles';
+  static const supervisorProfiles = '/supervisor/profiles';
+  static const adminProfiles = '/admin/profiles';
+  static const profileDetail = '/profiles/:userId';
+  static const workerMap = '/worker/map';
+  static const supervisorLiveMap = '/supervisor/live-map';
+  static const adminLiveMap = '/admin/live-map';
+  static const workerSafety = '/worker/safety';
+
+  static String profile(String userId) => '/profiles/$userId';
+  static String profilesFor(String role) => switch (role) { 'supervisor' => supervisorProfiles, 'admin' => adminProfiles, _ => workerProfiles };
+  static String liveMapFor(String role) => switch (role) { 'supervisor' => supervisorLiveMap, 'admin' => adminLiveMap, _ => workerMap };
+
   static String review(String checkInId) => '/supervisor/review/$checkInId';
   static String hazardDetail(String hazardId) => '/supervisor/hazard/$hazardId';
   static const workerSosEvac = '/worker/sos?mode=evac';

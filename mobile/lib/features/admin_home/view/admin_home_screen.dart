@@ -95,6 +95,8 @@ class _View extends StatelessWidget {
                     MediaTile(imageUrl: AppImages.adminCrisis, icon: Icons.crisis_alert, title: 'Crisis Console', subtitle: 'Master control', aspectRatio: 1.6, onTap: () => context.go(Routes.adminCrisis)),
                     MediaTile(imageUrl: AppImages.broadcast, icon: Icons.campaign, title: 'Broadcast', subtitle: 'Message your people', aspectRatio: 1.6, onTap: () => context.go(Routes.adminBroadcast)),
                     MediaTile(imageUrl: AppImages.contacts, icon: Icons.contact_phone, title: 'Emergency Contacts', subtitle: 'Police, fire, rescue', aspectRatio: 1.6, onTap: () => context.go(Routes.adminContacts)),
+                    MediaTile(imageUrl: AppImages.adminZones, icon: Icons.map, title: 'Live Map', subtitle: 'Everyone moving, live', aspectRatio: 1.6, onTap: () => context.go(Routes.adminLiveMap)),
+                    MediaTile(imageUrl: AppImages.supervisorFeed, icon: Icons.badge, title: 'People & Profiles', subtitle: 'Everyone, live', aspectRatio: 1.6, onTap: () => context.go(Routes.adminProfiles)),
                     MediaTile(imageUrl: AppImages.leaderboard, icon: Icons.leaderboard, title: 'Live Leaderboard', subtitle: 'Everyone, live', aspectRatio: 1.6, onTap: () => context.go(Routes.leaderboard)),
                     MediaTile(imageUrl: AppImages.adminReports, icon: Icons.assessment, title: 'Reports', subtitle: 'PDF, shareable', aspectRatio: 1.6, onTap: () => context.go(Routes.adminReports)),
                   ]),

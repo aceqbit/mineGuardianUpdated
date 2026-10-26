@@ -1,5 +1,5 @@
 import { env } from '../src/config/env.js';
-import { buildLayout } from './build_layout.js';
+import { buildLayout, LAYOUT_VERSION } from './build_layout.js';
 import { MineLayout } from '../src/models/MineLayout.js';
 import { Zone } from '../src/models/Zone.js';
 
@@ -17,12 +17,12 @@ export const ZONES = [
 
 const polygonOf = (geojson, code) => geojson.features.find((f) => f.properties.kind === 'zone' && f.properties.code === code).geometry;
 
-/** Layout v1 and the three zones. Mongo only: needs no Firebase credential, safe to run any number of times. */
+/** Layout (version LAYOUT_VERSION) and the three zones. Mongo only: needs no Firebase credential, safe to run any number of times. */
 export async function seedLayoutAndZones() {
   const geojson = buildLayout({ lat: env.DEMO_ANCHOR_LAT, lng: env.DEMO_ANCHOR_LNG });
   await MineLayout.updateOne(
-    { version: 1 },
-    { $set: { version: 1, anchor: { lat: env.DEMO_ANCHOR_LAT, lng: env.DEMO_ANCHOR_LNG }, geojson } },
+    { version: LAYOUT_VERSION },
+    { $set: { version: LAYOUT_VERSION, anchor: { lat: env.DEMO_ANCHOR_LAT, lng: env.DEMO_ANCHOR_LNG }, geojson } },
     { upsert: true },
   );
   const zones = {};

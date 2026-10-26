@@ -31,7 +31,7 @@ const diff = (a, b) => ({ onlyA: a.filter((x) => !b.includes(x)), onlyB: b.filte
   const d = diff(server, dartServer);
   check('socket events: Dart serverToClient list equals the backend list', d.onlyA.length === 0 && d.onlyB.length === 0, JSON.stringify(d));
 }
-check('bus events are unchanged (10 names)', BUS_EVENTS.length === 10, `${BUS_EVENTS.length}`);
+check('bus events: 10 v1 names + 2 add-on names', BUS_EVENTS.length === 12, `${BUS_EVENTS.length}`);
 
 // ---- enums ----
 {

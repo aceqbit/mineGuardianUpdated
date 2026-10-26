@@ -41,6 +41,8 @@ class MgColors extends ThemeExtension<MgColors> {
     required this.medalGold,
     required this.medalSilver,
     required this.medalBronze,
+    required this.roleAdmin,
+    required this.roleAdminText,
   });
 
   final Color ink900, ink800, ink700, ink600;
@@ -64,6 +66,10 @@ class MgColors extends ThemeExtension<MgColors> {
 
   /// Podium and rank medals.
   final Color medalGold, medalSilver, medalBronze;
+
+  /// Admin role accent (add-on X7): [roleAdmin] is a fill that carries white text, [roleAdminText] is for text/icons on a surface.
+  /// Miners use amber, supervisors use info.
+  final Color roleAdmin, roleAdminText;
 
   static const light = MgColors(
     ink900: Color(0xFF0B1220),
@@ -103,6 +109,8 @@ class MgColors extends ThemeExtension<MgColors> {
     medalGold: Color(0xFF8A6400),
     medalSilver: Color(0xFF6B7280),
     medalBronze: Color(0xFF9A5B24),
+    roleAdmin: Color(0xFF4338CA),
+    roleAdminText: Color(0xFF3730A3),
   );
 
   static const dark = MgColors(
@@ -143,6 +151,8 @@ class MgColors extends ThemeExtension<MgColors> {
     medalGold: Color(0xFFE5B93C),
     medalSilver: Color(0xFFC0C7D1),
     medalBronze: Color(0xFFD08A4E),
+    roleAdmin: Color(0xFF4338CA),
+    roleAdminText: Color(0xFFA5B4FC),
   );
 
   static MgColors of(BuildContext context) => Theme.of(context).extension<MgColors>() ?? light;

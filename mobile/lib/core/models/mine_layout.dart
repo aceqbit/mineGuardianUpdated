@@ -35,8 +35,11 @@ class LayoutZone {
 }
 
 class LayoutTunnel {
-  const LayoutTunnel({required this.id, required this.from, required this.to, required this.widthM, required this.capacity, required this.slopePct, required this.airway, required this.blocked, required this.coords});
+  const LayoutTunnel({required this.id, required this.from, required this.to, required this.widthM, required this.capacity, required this.slopePct, required this.airway, required this.blocked, required this.coords, this.lightLux});
   final String id;
+
+  /// Add-on X4: measured lighting in lux (null = unknown, treated as unlit by the "most light" route).
+  final double? lightLux;
   final String from;
   final String to;
   final double widthM;
@@ -79,8 +82,23 @@ class LayoutRefuge {
   final String node;
 }
 
+/// Add-on X4 aid point (layout `kind: aid`): first aid, tool station, phone, self-rescuer cache, extinguisher.
+class LayoutAid {
+  const LayoutAid({required this.id, required this.aidType, required this.name, required this.point, required this.node});
+  final String id;
+
+  /// AID_TYPE wire value (kept as a string so an unknown future type never breaks parsing).
+  final String aidType;
+  final String name;
+  final GeoPoint point;
+  final String node;
+}
+
 class MineLayoutData {
-  const MineLayoutData({required this.version, required this.anchor, required this.zones, required this.tunnels, required this.junctions, required this.exits, required this.refuges});
+  const MineLayoutData({required this.version, required this.anchor, required this.zones, required this.tunnels, required this.junctions, required this.exits, required this.refuges, this.aids = const []});
+
+  /// Add-on X4 aid points (empty for older layouts).
+  final List<LayoutAid> aids;
   final int version;
   final GeoPoint anchor;
   final List<LayoutZone> zones;
@@ -98,6 +116,7 @@ class MineLayoutData {
     final junctions = <LayoutJunction>[];
     final exits = <LayoutExit>[];
     final refuges = <LayoutRefuge>[];
+    final aids = <LayoutAid>[];
     for (final f in feats) {
       final props = (f['properties'] as Map).cast<String, dynamic>();
       final geom = f['geometry'] as Map;
@@ -116,11 +135,14 @@ class MineLayoutData {
             airway: props['airway'] as String,
             blocked: props['status'] == 'blocked',
             coords: (geom['coordinates'] as List).map((c) => GeoPoint.fromCoord(c as List)).toList(),
+            lightLux: (props['lightLux'] as num?)?.toDouble(),
           ));
         case 'junction':
           junctions.add(LayoutJunction(props['id'] as String, GeoPoint.fromCoord(geom['coordinates'] as List)));
         case 'exit':
           exits.add(LayoutExit(id: props['id'] as String, name: props['name'] as String? ?? '', exitType: props['exitType'] as String? ?? 'shaft', point: GeoPoint.fromCoord(geom['coordinates'] as List), node: props['node'] as String? ?? ''));
+        case 'aid':
+          aids.add(LayoutAid(id: props['id'] as String, aidType: props['aidType'] as String? ?? 'FIRST_AID', name: props['name'] as String? ?? '', point: GeoPoint.fromCoord(geom['coordinates'] as List), node: props['node'] as String? ?? ''));
         case 'refuge':
           refuges.add(LayoutRefuge(id: props['id'] as String, name: props['name'] as String? ?? '', capacity: (props['capacity'] as num?)?.toInt() ?? 0, point: GeoPoint.fromCoord(geom['coordinates'] as List), node: props['node'] as String? ?? ''));
       }
@@ -133,6 +155,7 @@ class MineLayoutData {
       junctions: junctions,
       exits: exits,
       refuges: refuges,
+      aids: aids,
     );
   }
 
